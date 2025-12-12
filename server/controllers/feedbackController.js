@@ -1,0 +1,313 @@
+const asyncHandler = require('express-async-handler');
+const FeedbackTemplate = require('../models/FeedbackTemplate');
+const FeedbackResponse = require('../models/FeedbackResponse');
+const Enrollment = require('../models/Enrollment');
+const mongoose = require('mongoose');
+
+// @desc    Create Feedback Template
+// @route   POST /api/feedback/admin
+// @access  Admin
+const createFeedback = asyncHandler(async (req, res) => {
+    const { title, description, programId, questions, startAt, endAt } = req.body;
+
+    if (!questions || questions.length === 0) {
+        res.status(400);
+        throw new Error('Feedback must have at least one question');
+    }
+
+    const feedback = await FeedbackTemplate.create({
+        title,
+        description,
+        programId,
+        questions,
+        startAt: startAt || null,
+        endAt: endAt || null,
+        createdBy: req.user._id,
+        status: 'Draft'
+    });
+
+    res.status(201).json(feedback);
+});
+
+// @desc    Get All Feedbacks (Admin)
+// @route   GET /api/feedback/admin
+// @access  Admin
+const getAdminFeedbacks = asyncHandler(async (req, res) => {
+    const feedbacks = await FeedbackTemplate.find({})
+        .populate('programId', 'title')
+        .sort({ createdAt: -1 });
+    res.json(feedbacks);
+});
+
+// @desc    Get Single Feedback with Stats
+// @route   GET /api/feedback/admin/:id
+// @access  Admin
+const getFeedbackById = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id).populate('programId', 'title');
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    // Aggregate stats
+    const totalResponses = await FeedbackResponse.countDocuments({ feedbackId: feedback._id });
+
+    // For detailed stats per question, we'll do a simple aggregation or fetch responses
+    // For MVP, letting frontend calculate complex charts or doing simple counts here
+    // Let's do simple counts here using Aggregation
+
+    const stats = await FeedbackResponse.aggregate([
+        { $match: { feedbackId: feedback._id } },
+        { $unwind: "$answers" },
+        {
+            $group: {
+                _id: { questionId: "$answers.questionId", value: "$answers.value" },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $group: {
+                _id: "$_id.questionId",
+                counts: { $push: { value: "$_id.value", count: "$count" } }
+            }
+        }
+    ]);
+
+    res.json({
+        ...feedback.toObject(),
+        stats: {
+            totalResponses,
+            questionStats: stats
+        }
+    });
+});
+
+// @desc    Update Feedback
+// @route   PUT /api/feedback/admin/:id
+// @access  Admin
+const updateFeedback = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    if (feedback.status === 'Published') {
+        res.status(400);
+        throw new Error('Cannot update a published feedback. Unpublish it first.');
+    }
+
+    const updatedFeedback = await FeedbackTemplate.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updatedFeedback);
+});
+
+// @desc    Publish Feedback
+// @route   PATCH /api/feedback/admin/:id/publish
+// @access  Admin
+const publishFeedback = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    feedback.status = 'Published';
+    feedback.publishedAt = Date.now();
+    await feedback.save();
+
+    // Notify logic can go here (omitted for MVP requirements)
+
+    res.json(feedback);
+});
+
+// @desc    Unpublish Feedback
+// @route   PATCH /api/feedback/admin/:id/unpublish
+// @access  Admin
+const unpublishFeedback = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    feedback.status = 'Draft';
+    await feedback.save();
+    res.json(feedback);
+});
+
+// @desc    Delete Feedback
+// @route   DELETE /api/feedback/admin/:id
+// @access  Admin
+const deleteFeedback = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    await feedback.deleteOne();
+    await FeedbackResponse.deleteMany({ feedbackId: feedback._id }); // Cleanup responses
+
+    res.json({ message: 'Feedback removed' });
+});
+
+// @desc    Get Student Feedbacks
+// @route   GET /api/feedback/me
+// @access  Private
+const getMyFeedbacks = asyncHandler(async (req, res) => {
+    // 1. Get active enrollments
+    const enrollments = await Enrollment.find({ user: req.user._id, status: 'active' });
+    const programIds = enrollments.map(e => e.program);
+
+    // 2. Get Published feedbacks for these programs
+    const now = new Date();
+    const feedbacks = await FeedbackTemplate.find({
+        programId: { $in: programIds },
+        status: 'Published'
+    }).populate('programId', 'title');
+
+    // 3. Mark status based on Schedule and Submission
+    // We need to check which ones are already submitted
+    const submittedIds = await FeedbackResponse.distinct('feedbackId', { userId: req.user._id });
+
+    const result = feedbacks.map(fb => {
+        const isSubmitted = submittedIds.some(id => id.toString() === fb._id.toString());
+        let status = 'Available';
+
+        if (fb.startAt && now < fb.startAt) status = 'Scheduled';
+        if (fb.endAt && now > fb.endAt) status = 'Closed';
+        if (isSubmitted) status = 'Completed';
+
+        return {
+            ...fb.toObject(),
+            userStatus: status
+        };
+    });
+
+    res.json(result);
+});
+
+// @desc    Get Feedback for Submission
+// @route   GET /api/feedback/me/:id
+// @access  Private
+const getFeedbackForSubmission = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id).populate('programId', 'title');
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    // Security check: User must be enrolled
+    const enrollment = await Enrollment.findOne({
+        userId: req.user._id,
+        programId: feedback.programId,
+        status: 'active'
+    });
+
+    if (!enrollment && req.user.role !== 'admin') {
+        res.status(403);
+        throw new Error('Not enrolled in this program');
+    }
+
+    res.json(feedback);
+});
+
+// @desc    Submit Feedback
+// @route   POST /api/feedback/me/:id
+// @access  Private
+const submitFeedback = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    const enrollment = await Enrollment.findOne({
+        user: req.user._id,
+        program: feedback.programId,
+        status: 'active'
+    });
+
+    if (!enrollment) {
+        res.status(403);
+        throw new Error('Not enrolled in this program');
+    }
+
+    // Check duplicate
+    const existing = await FeedbackResponse.findOne({
+        feedbackId: feedback._id,
+        userId: req.user._id,
+        enrollmentId: enrollment._id
+    });
+
+    if (existing) {
+        res.status(400);
+        throw new Error('Feedback already submitted');
+    }
+
+    const response = await FeedbackResponse.create({
+        feedbackId: feedback._id,
+        programId: feedback.programId,
+        userId: req.user._id,
+        enrollmentId: enrollment._id,
+        answers: req.body.answers
+    });
+
+    res.status(201).json(response);
+});
+
+// @desc    Export Feedback Responses (CSV)
+// @route   GET /api/feedback/admin/:id/export
+// @access  Admin
+const exportFeedbackResponses = asyncHandler(async (req, res) => {
+    const feedback = await FeedbackTemplate.findById(req.params.id);
+    if (!feedback) {
+        res.status(404);
+        throw new Error('Feedback not found');
+    }
+
+    const responses = await FeedbackResponse.find({ feedbackId: feedback._id })
+        .populate('userId', 'name email')
+        .sort({ submittedAt: -1 });
+
+    // Simple CSV construction
+    // Headers: Submitted At, User Name, User Email, [Question Text 1], [Question Text 2]...
+    const questionHeaders = feedback.questions.map(q => `"${q.text.replace(/"/g, '""')}"`).join(',');
+    let csv = `Submitted At,User Name,User Email,${questionHeaders}\n`;
+
+    responses.forEach(resp => {
+        const row = [
+            resp.submittedAt.toISOString(),
+            `"${resp.userId?.name || 'Unknown'}"`,
+            `"${resp.userId?.email || 'Unknown'}"`
+        ];
+
+        // Map answers to columns
+        feedback.questions.forEach(q => {
+            const ans = resp.answers.find(a => a.questionId === q.id);
+            let val = ans ? ans.value : '';
+            if (Array.isArray(val)) val = val.join('; ');
+            row.push(`"${String(val).replace(/"/g, '""')}"`);
+        });
+
+        csv += row.join(',') + '\n';
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment(`feedback-${feedback._id}.csv`);
+    res.send(csv);
+});
+
+module.exports = {
+    createFeedback,
+    getAdminFeedbacks,
+    getFeedbackById,
+    updateFeedback,
+    publishFeedback,
+    unpublishFeedback,
+    deleteFeedback,
+    getMyFeedbacks,
+    getFeedbackForSubmission,
+    submitFeedback,
+    exportFeedbackResponses
+};

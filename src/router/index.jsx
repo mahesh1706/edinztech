@@ -1,0 +1,99 @@
+import { createBrowserRouter } from 'react-router-dom';
+import PublicLayout from '../layouts/PublicLayout';
+import DashboardLayout from '../layouts/DashboardLayout';
+import AdminLayout from '../layouts/AdminLayout';
+
+// Public Pages
+import Home from '../pages/Home';
+import Courses from '../pages/Courses';
+import CourseDetails from '../pages/CourseDetails';
+import Internships from '../pages/Internships';
+import InternshipDetails from '../pages/InternshipDetails';
+import Workshops from '../pages/Workshops';
+import WorkshopDetails from '../pages/WorkshopDetails';
+import Verify from '../pages/Verify';
+import Login from '../pages/Login';
+import Success from '../pages/Success';
+
+// Dashboard Pages
+import Dashboard from '../pages/Dashboard';
+import DashboardCourses from '../pages/DashboardCourses';
+import DashboardInternships from '../pages/DashboardInternships';
+import DashboardWorkshops from '../pages/DashboardWorkshops';
+import DashboardCertificates from '../pages/DashboardCertificates';
+import DashboardQuizzes from '../pages/DashboardQuizzes';
+import DashboardFeedbacks from '../pages/DashboardFeedbacks';
+import FeedbackAttempt from '../pages/FeedbackAttempt';
+
+// Admin Pages
+import Admin from '../pages/Admin';
+import AdminPrograms from '../pages/AdminPrograms';
+import AdminProgramsNew from '../pages/AdminProgramsNew';
+import AdminProgramsEdit from '../pages/AdminProgramsEdit';
+import AdminQuizzes from '../pages/AdminQuizzes';
+import AdminQuizzesNew from '../pages/AdminQuizzesNew';
+import AdminFeedbacks from '../pages/AdminFeedbacks';
+import AdminFeedbacksNew from '../pages/AdminFeedbacksNew';
+import AdminFeedbacksEdit from '../pages/AdminFeedbacksEdit';
+import AdminTemplateCertificate from '../pages/admin/templates/certificate';
+import AdminTemplateOfferLetter from '../pages/admin/templates/offer-letter';
+import AdminInvitePage from '../pages/admin/invite';
+
+import ProtectedRoute from '../components/auth/ProtectedRoute';
+
+export const router = createBrowserRouter([
+    {
+        path: '/',
+        element: <PublicLayout />,
+        children: [
+            { path: '/', element: <Home /> },
+            { path: '/courses', element: <Courses /> },
+            { path: '/internships', element: <Internships /> },
+            { path: '/workshops', element: <Workshops /> },
+            { path: '/programs/:id', element: <CourseDetails /> },
+            { path: '/verify', element: <Verify /> },
+            { path: '/login', element: <Login /> },
+            { path: '/success', element: <Success /> },
+        ],
+    },
+    {
+        path: '/dashboard',
+        element: (
+            <ProtectedRoute>
+                <DashboardLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { path: '/dashboard', element: <Dashboard /> },
+            { path: '/dashboard/courses', element: <DashboardCourses /> },
+            { path: '/dashboard/internships', element: <DashboardInternships /> },
+            { path: '/dashboard/workshops', element: <DashboardWorkshops /> },
+            { path: '/dashboard/certificates', element: <DashboardCertificates /> },
+            { path: '/dashboard/quizzes', element: <DashboardQuizzes /> },
+            { path: '/dashboard/feedbacks', element: <DashboardFeedbacks /> },
+            { path: '/dashboard/feedbacks/:id', element: <FeedbackAttempt /> },
+        ],
+    },
+    {
+        path: '/admin',
+        element: (
+            <ProtectedRoute adminOnly={true}>
+                <AdminLayout />
+            </ProtectedRoute>
+        ),
+        children: [
+            { path: '/admin', element: <Admin /> },
+            { path: '/admin/programs', element: <AdminPrograms /> },
+            { path: '/admin/programs/new', element: <AdminProgramsNew /> },
+            { path: '/admin/programs/:id/edit', element: <AdminProgramsEdit /> }, // Edit route
+            { path: '/admin/quizzes', element: <AdminQuizzes /> },
+            { path: '/admin/quizzes/new', element: <AdminQuizzesNew /> },
+            { path: 'feedbacks', element: <AdminFeedbacks /> },
+            { path: 'feedbacks/new', element: <AdminFeedbacksNew /> },
+            { path: 'feedbacks/:id/edit', element: <AdminFeedbacksEdit /> },
+            { path: '/admin/certificates', element: <AdminTemplateCertificate /> },
+            { path: '/admin/offer-letters', element: <AdminTemplateOfferLetter /> },
+            { path: '/admin/invite', element: <AdminInvitePage /> },
+        ],
+    },
+]);

@@ -1,0 +1,78 @@
+import {
+    CheckCircle,
+    AlertCircle,
+    Info,
+    Upload,
+    BookOpen,
+    Briefcase,
+    Users,
+    Home,
+    ShieldCheck,
+    LogIn,
+    LogOut,
+    ChevronRight,
+    Menu,
+    X,
+    Rocket,
+    Award,
+    CreditCard,
+    Clock,
+    Calendar,
+    Search,
+    Plus,
+    Filter,
+    Download as DownloadIcon,
+    Trash2,
+    Edit,
+    Mail,
+    UserPlus,
+    MessageSquare,
+    BarChart,
+    Dot
+} from 'lucide-react';
+
+export const Icons = {
+    // Navigation & General
+    Rocket: (props) => <Rocket className="text-primary" {...props} />,
+    ShieldCheck: (props) => <ShieldCheck className="text-secondary" {...props} />,
+    Home: (props) => <Home className="text-secondary" {...props} />,
+    Courses: (props) => <BookOpen className="text-secondary" {...props} />,
+    Internships: (props) => <Briefcase className="text-secondary" {...props} />,
+    Workshops: (props) => <Users className="text-secondary" {...props} />,
+    Verify: (props) => <ShieldCheck className="text-secondary" {...props} />,
+    Login: (props) => <LogIn className="text-secondary" {...props} />,
+    Logout: (props) => <LogOut className="text-secondary" {...props} />,
+
+    // UI Controls
+    Menu: (props) => <Menu className="text-primary" {...props} />,
+    Close: (props) => <X className="text-primary" {...props} />,
+    ChevronRight: (props) => <ChevronRight className="text-gray-400" {...props} />,
+    Search: (props) => <Search className="text-gray-400" {...props} />,
+    Plus: (props) => <Plus className="text-primary" {...props} />,
+    Filter: (props) => <Filter className="text-secondary" {...props} />,
+    Download: (props) => <DownloadIcon className="text-secondary" {...props} />,
+    Edit: (props) => <Edit className="text-blue-600" {...props} />,
+    Trash: (props) => <Trash2 className="text-danger" {...props} />,
+    Dot: (props) => <Dot {...props} />,
+
+    // Communication
+    Mail: (props) => <Mail className="text-secondary" {...props} />,
+    UserPlus: (props) => <UserPlus className="text-secondary" {...props} />,
+    MessageSquare: (props) => <MessageSquare className="text-secondary" {...props} />,
+    BarChart: (props) => <BarChart className="text-secondary" {...props} />,
+    CheckCircle: (props) => <CheckCircle className="text-success" {...props} />,
+    AlertCircle: (props) => <AlertCircle className="text-danger" {...props} />,
+
+    // Status
+    Success: (props) => <CheckCircle className="text-success" {...props} />,
+    Danger: (props) => <AlertCircle className="text-danger" {...props} />,
+    Info: (props) => <Info className="text-secondary" {...props} />,
+
+    // Feature Specific
+    Duration: (props) => <Clock className="text-primary" {...props} />,
+    Date: (props) => <Calendar className="text-primary" {...props} />,
+    Fee: (props) => <CreditCard className="text-primary" {...props} />,
+    Certificate: (props) => <Award className="text-primary" {...props} />,
+    Quiz: (props) => <Rocket className="text-primary" {...props} />,
+    Upload: (props) => <Upload className="text-primary" {...props} />,
+};
