@@ -1,16 +1,18 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 
 const storage = multer.diskStorage({
     destination(req, file, cb) {
-        // Dynamic destination based on field name or fallback
-        if (file.fieldname === 'certificateTemplate') {
-            cb(null, 'server/uploads/templates');
-        } else if (file.fieldname === 'offerLetterTemplate') {
-            cb(null, 'server/uploads/templates');
-        } else {
-            cb(null, 'server/uploads/');
+        // Use absolute path to 'server/uploads'
+        const uploadPath = path.join(__dirname, '../uploads');
+
+        // Ensure directory exists
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
         }
+
+        cb(null, uploadPath);
     },
     filename(req, file, cb) {
         cb(

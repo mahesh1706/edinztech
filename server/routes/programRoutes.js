@@ -28,9 +28,11 @@ router.post('/:id/upload-template', protect, admin, upload.single('template'), (
     // Let's assume frontend sends matching field.
 
     // Simplest: just confirm upload
+    // Return consistent path for frontend: 'uploads/filename.ext'
+    // Frontend is already proxied or will map '/uploads' to server/uploads
     res.send({
         message: 'File Uploaded',
-        path: req.file.path.replace(/\\\\/g, "/")
+        path: `uploads/${req.file.filename}`
     });
 });
 

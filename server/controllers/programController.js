@@ -19,7 +19,29 @@ const getPrograms = asyncHandler(async (req, res) => {
     // Filter active/published
     const activeFilter = { isArchived: false };
 
-    const programs = await Program.find({ ...keyword, ...typeFilter, ...activeFilter }).sort({ createdAt: -1 });
+    // Aggregation pipeline to join enrollments and count them
+    const programs = await Program.aggregate([
+        { $match: { ...keyword, ...typeFilter, ...activeFilter } },
+        {
+            $lookup: {
+                from: 'enrollments', // collection name in DB (usually lowercase plural)
+                localField: '_id',
+                foreignField: 'program',
+                as: 'enrollmentsData'
+            }
+        },
+        {
+            $addFields: {
+                enrolledCount: { $size: '$enrollmentsData' }
+            }
+        },
+        {
+            $project: {
+                enrollmentsData: 0 // Remove heavy array
+            }
+        },
+        { $sort: { createdAt: -1 } }
+    ]);
     res.json(programs);
 });
 

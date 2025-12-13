@@ -8,13 +8,24 @@ export default function AdminQuizzes() {
     const [quizzes, setQuizzes] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('All');
+
     useEffect(() => {
-        fetchQuizzes();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchQuizzes();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, filterStatus]);
 
     const fetchQuizzes = async () => {
         try {
-            const data = await getAllQuizzes();
+            setLoading(true); // Ensure loading state triggered on refresh
+            const params = {};
+            if (searchTerm) params.keyword = searchTerm;
+            if (filterStatus !== 'All') params.status = filterStatus;
+
+            const data = await getAllQuizzes(params);
             setQuizzes(data);
         } catch (error) {
             console.error("Failed to fetch quizzes", error);

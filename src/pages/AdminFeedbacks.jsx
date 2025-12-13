@@ -9,13 +9,24 @@ export default function AdminFeedbacks() {
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterStatus, setFilterStatus] = useState('All');
+
     useEffect(() => {
-        fetchFeedbacks();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchFeedbacks();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, filterStatus]);
 
     const fetchFeedbacks = async () => {
         try {
-            const data = await getAdminFeedbacks();
+            setLoading(true);
+            const params = {};
+            if (searchTerm) params.keyword = searchTerm;
+            if (filterStatus !== 'All') params.status = filterStatus;
+
+            const data = await getAdminFeedbacks(params);
             setFeedbacks(data);
         } catch (error) {
             console.error("Failed to fetch feedbacks", error);

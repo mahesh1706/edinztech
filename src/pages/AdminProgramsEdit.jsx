@@ -52,10 +52,12 @@ export default function AdminProgramsEdit() {
         type: program.type || program.category,
         mode: program.mode,
         paymentMode: program.paymentMode || 'Paid',
-        fee: program.fee,
+        fee: program.fee ? String(program.fee) : '',
         startDate: program.startDate ? new Date(program.startDate).toISOString().split('T')[0] : '',
         endDate: program.endDate ? new Date(program.endDate).toISOString().split('T')[0] : '',
         durationDays: program.durationDays,
+        offerLetterTemplate: program.offerLetterTemplate,
+        certificateTemplate: program.certificateTemplate,
     };
 
     return (
@@ -93,7 +95,7 @@ export default function AdminProgramsEdit() {
 
             {/* Content */}
             {activeTab === 'basic' && (
-                <ProgramForm onSubmit={handleSubmit} defaultValues={defaultValues} isEditing />
+                <ProgramForm programId={id} onSubmit={handleSubmit} defaultValues={defaultValues} isEditing />
             )}
 
             {activeTab === 'quizzes' && (

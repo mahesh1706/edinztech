@@ -33,7 +33,18 @@ const createFeedback = asyncHandler(async (req, res) => {
 // @route   GET /api/feedback/admin
 // @access  Admin
 const getAdminFeedbacks = asyncHandler(async (req, res) => {
-    const feedbacks = await FeedbackTemplate.find({})
+    const keyword = req.query.keyword ? {
+        title: {
+            $regex: req.query.keyword,
+            $options: 'i',
+        },
+    } : {};
+
+    const statusFilter = req.query.status && req.query.status !== 'All'
+        ? { status: req.query.status }
+        : {};
+
+    const feedbacks = await FeedbackTemplate.find({ ...keyword, ...statusFilter })
         .populate('programId', 'title')
         .sort({ createdAt: -1 });
     res.json(feedbacks);
