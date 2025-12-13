@@ -9,18 +9,27 @@ import AdminTable from '../components/AdminTable'; // Keep AdminTable import as 
 
 export default function AdminPrograms() {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterType, setFilterType] = useState('All');
     const [programs, setPrograms] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Debounce search
     useEffect(() => {
-        fetchPrograms();
-    }, []);
+        const timer = setTimeout(() => {
+            fetchPrograms();
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [searchTerm, filterType]);
 
     const fetchPrograms = async () => {
         try {
             setIsLoading(true);
-            const { data } = await api.get('/programs');
+            const params = {};
+            if (searchTerm) params.keyword = searchTerm;
+            if (filterType !== 'All') params.type = filterType;
+
+            const { data } = await api.get('/programs', { params });
             setPrograms(data);
             setError(null);
         } catch (err) {
@@ -31,10 +40,10 @@ export default function AdminPrograms() {
         }
     };
 
-    if (isLoading) {
+    if (isLoading && !programs.length) { // Only full page load initially
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center contents-start"> {/* Keep header static */}
                     <h1 className="text-2xl font-bold text-secondary">All Programs</h1>
                     <Link to="/admin/programs/new">
                         <Button className="gap-2">
@@ -50,6 +59,7 @@ export default function AdminPrograms() {
     if (error) {
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Header copy for consistency */}
                 <div className="flex justify-between items-center">
                     <h1 className="text-2xl font-bold text-secondary">All Programs</h1>
                     <Link to="/admin/programs/new">
@@ -65,13 +75,40 @@ export default function AdminPrograms() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-secondary">All Programs</h1>
                 <Link to="/admin/programs/new">
                     <Button className="gap-2">
                         <Icons.Plus size={18} /> Add Program
                     </Button>
                 </Link>
+            </div>
+
+            {/* Search and Filter Toolbar */}
+            <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                <div className="relative flex-1">
+                    <Icons.Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="Search programs..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    />
+                </div>
+                <div className="w-full md:w-48">
+                    <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none bg-white cursor-pointer"
+                        style={{ backgroundImage: 'none' }} // Remove browser arrow if using custom icon, or keep standard
+                    >
+                        <option value="All">All Types</option>
+                        <option value="Course">Course</option>
+                        <option value="Internship">Internship</option>
+                        <option value="Workshop">Workshop</option>
+                    </select>
+                </div>
             </div>
 
             <AdminTable headers={['Program Name', 'Category', 'Price', 'Enrolled', 'Status', 'Actions']}>
@@ -94,7 +131,7 @@ export default function AdminPrograms() {
                         <td className="px-6 py-4 text-sm text-text-light">
                             {program.paymentMode === 'Paid' ? `₹${program.fee}` : program.paymentMode}
                         </td>
-                        <td className="px-6 py-4 text-sm text-text-light">0</td>
+                        <td className="px-6 py-4 text-sm text-text-light">{program.enrolledCount || 0}</td>
                         <td className="px-6 py-4">
                             <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full w-fit">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span> Active

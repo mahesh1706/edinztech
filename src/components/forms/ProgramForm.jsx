@@ -9,6 +9,95 @@ import { Icons } from '../icons';
 import { createProgram, uploadProgramTemplate } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 
+// Helper Component for Template Upload
+const TemplateUploader = ({ label, file, setFile, initialUrl, onRemove }) => {
+    const [preview, setPreview] = useState(null);
+
+    // Effect to generate preview URL
+    useEffect(() => {
+        console.log(`[TemplateUploader] ${label} - initialUrl:`, initialUrl);
+        console.log(`[TemplateUploader] ${label} - file:`, file);
+
+        if (file) {
+            const objectUrl = URL.createObjectURL(file);
+            setPreview(objectUrl);
+            return () => URL.revokeObjectURL(objectUrl);
+        } else if (initialUrl && typeof initialUrl === 'string') {
+            // Convert backend path (e.g., 'uploads/template-123.jpg') to accessible URL
+            let url = initialUrl.replace(/\\/g, '/');
+            if (!url.startsWith('/')) {
+                url = '/' + url;
+            }
+            // Now url is like '/uploads/template-123.jpg'
+            console.log(`[TemplateUploader] ${label} - processed url:`, url);
+            setPreview(url);
+        } else {
+            setPreview(null);
+        }
+    }, [file, initialUrl, label]);
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0]);
+        }
+    };
+
+    const handleRemove = () => {
+        setFile(null);
+        if (onRemove) onRemove();
+    };
+
+    // If we have a preview (either new file or existing), show it
+    if (preview) {
+        return (
+            <div className="border border-gray-200 p-4 rounded-lg text-center relative bg-gray-50">
+                <h4 className="font-medium text-gray-900 mb-2">{label}</h4>
+                <div className="relative inline-block group">
+                    <img
+                        src={preview}
+                        alt={`${label} Preview`}
+                        className="h-48 object-contain rounded-md border border-gray-300 bg-white"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleRemove}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
+                        title="Remove Image"
+                    >
+                        <Icons.Close size={16} />
+                    </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                    {file ? file.name : 'Current Template'}
+                </p>
+            </div>
+        );
+    }
+
+    // Default Upload State
+    return (
+        <div className="border border-dashed border-gray-300 p-6 rounded-lg text-center hover:bg-gray-50 transition-colors">
+            <Icons.Certificate className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+            <h4 className="font-medium text-gray-900">{label}</h4>
+            <p className="text-sm text-gray-500 mb-4">
+                Upload background image (JPG, PNG)
+            </p>
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id={`upload-${label.replace(/\s+/g, '-').toLowerCase()}`}
+            />
+            <label htmlFor={`upload-${label.replace(/\s+/g, '-').toLowerCase()}`}>
+                <span className="inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-3 py-1.5 text-sm cursor-pointer shadow-sm">
+                    Upload Image
+                </span>
+            </label>
+        </div>
+    );
+};
+
 // --- Zod Schemas per Step ---
 
 const step1Schema = z.object({
@@ -25,7 +114,7 @@ const step1Schema = z.object({
 
 const step2Schema = z.object({
     paymentMode: z.enum(['Paid', 'Free', 'Invite Only']),
-    fee: z.string().optional(),
+    fee: z.union([z.string(), z.number()]).transform(val => String(val || '')).optional(),
     registrationLink: z.string().optional().or(z.literal('')),
 }).refine((data) => {
     if (data.paymentMode === 'Paid') {
@@ -52,7 +141,7 @@ const step4Schema = z.object({
 // Combined Schema for final submission check if needed, but we rely on steps
 const fullSchema = z.any(); // We validate per step
 
-export default function ProgramForm({ defaultValues: initialValues, onSubmit: parentSubmit, isEditing = false }) {
+export default function ProgramForm({ defaultValues: initialValues, onSubmit: parentSubmit, isEditing = false, programId }) {
     const navigate = useNavigate();
     const [currentStep, setCurrentStep] = useState(0); // 0: Basic, 1: Payment, 2: Templates, 3: Communication
     const [offerLetterFile, setOfferLetterFile] = useState(null);
@@ -165,16 +254,33 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
             };
 
             // IF PARENT SUBMIT PROVIDED (Edit Mode or Custom Handler)
+            // IF PARENT SUBMIT PROVIDED (Edit Mode or Custom Handler)
             if (parentSubmit) {
-                // If files provided, parent needs to handle upload logic or we pass files up?
-                // Parent probably expects data. Parent might verify uploads separately.
-                // Or we can modify 'payload' to include file objects if parent needs them?
-                // For simplicity, we rely on parent to update program data.
-                // Template updates in Edit mode: typically separate component or handled here if API supports.
-                // Let's assume parent handles pure data update.
-                // Use default logic for Templates?
-                // If we want to support template update in edit, we should do it here or pass files.
-                // Let's pass simple data first.
+                // Handle Uploads for Edit Mode
+                if (isEditing && programId) {
+                    if (offerLetterFile) {
+                        try {
+                            const uploadRes = await uploadProgramTemplate(programId, offerLetterFile);
+                            if (uploadRes.path) {
+                                payload.offerLetterTemplate = uploadRes.path;
+                            }
+                        } catch (err) {
+                            console.error("Failed to upload offer letter", err);
+                            // Optional: Alert user but continue? Or throw?
+                        }
+                    }
+                    if (certificateFile) {
+                        try {
+                            const uploadRes = await uploadProgramTemplate(programId, certificateFile);
+                            if (uploadRes.path) {
+                                payload.certificateTemplate = uploadRes.path;
+                            }
+                        } catch (err) {
+                            console.error("Failed to upload certificate", err);
+                        }
+                    }
+                }
+
                 await parentSubmit(payload);
                 return;
             }
@@ -183,21 +289,21 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
 
             // 2. Create Program
             const response = await createProgram(payload); // Expects { success: true, program: {...} } or just program
-            const programId = response._id || response.program?._id;
+            const newProgramId = response._id || response.program?._id;
 
-            if (!programId) throw new Error("Failed to get Program ID");
+            if (!newProgramId) throw new Error("Failed to get Program ID");
 
             // 3. Upload Templates & Update Program
             const updates = {};
 
             if (offerLetterFile) {
-                const uploadRes = await uploadProgramTemplate(programId, offerLetterFile);
+                const uploadRes = await uploadProgramTemplate(newProgramId, offerLetterFile);
                 if (uploadRes.path) {
                     updates.offerLetterTemplate = uploadRes.path;
                 }
             }
             if (certificateFile) {
-                const uploadRes = await uploadProgramTemplate(programId, certificateFile);
+                const uploadRes = await uploadProgramTemplate(newProgramId, certificateFile);
                 if (uploadRes.path) {
                     updates.certificateTemplate = uploadRes.path;
                 }
@@ -207,7 +313,7 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
             if (Object.keys(updates).length > 0) {
                 // We need to import updateProgram at the top
                 const { updateProgram } = await import('../../lib/api');
-                await updateProgram(programId, updates);
+                await updateProgram(newProgramId, updates);
             }
 
             // 4. Redirect
@@ -218,16 +324,17 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
         }
     };
 
-    // Auto-generate Program Code when Type changes
+    // Auto-generate Program Code if missing
+    const currentCode = watch('code');
     useEffect(() => {
-        if (!isEditing && programType) {
+        if (programType && !currentCode) {
             const date = new Date();
             const typeCode = programType.toUpperCase().slice(0, 3);
             const uniqueNum = Math.floor(100 + Math.random() * 900); // Random 3-digit number
             const code = `EDZ-${date.getFullYear()}-${typeCode}-${uniqueNum}`;
             setValue('code', code, { shouldDirty: true, shouldTouch: true });
         }
-    }, [programType, isEditing, setValue]);
+    }, [programType, currentCode, setValue]);
 
     return (
         <div className="space-y-8 animate-in fade-in">
@@ -241,8 +348,14 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                         return (
                             <div
                                 key={step.id}
+                                onClick={() => {
+                                    if (index < currentStep || isEditing) {
+                                        setCurrentStep(index);
+                                    }
+                                }}
                                 className={`
                                     whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors
+                                    ${(index < currentStep || isEditing) ? 'cursor-pointer hover:text-gray-700' : 'cursor-default'}
                                     ${isCurrent ? 'border-primary text-primary' :
                                         isCompleted ? 'border-success text-success' : 'border-transparent text-gray-400'}
                                 `}
@@ -363,46 +476,25 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                 {currentStep === 2 && (
                     <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
                         {programType === 'Internship' && (
-                            <div className="border border-dashed border-gray-300 p-6 rounded-lg text-center">
-                                <Icons.Internships className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-                                <h4 className="font-medium text-gray-900">Offer Letter Template</h4>
-                                <p className="text-sm text-gray-500 mb-4">
-                                    {isEditing ? "Upload new to replace existing" : "Upload background image for offer letters"}
-                                </p>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setOfferLetterFile(e.target.files[0])}
-                                    className="hidden"
-                                    id="offer-upload"
-                                />
-                                <label htmlFor="offer-upload">
-                                    <Button type="button" variant="outline" size="sm" as="span">
-                                        {offerLetterFile ? offerLetterFile.name : "Upload Image"}
-                                    </Button>
-                                </label>
-                            </div>
+                            <TemplateUploader
+                                label="Offer Letter Template"
+                                file={offerLetterFile}
+                                setFile={setOfferLetterFile}
+                                initialUrl={initialValues?.offerLetterTemplate}
+                                onRemove={() => {
+                                    setOfferLetterFile(null);
+                                    // If needed, we could signal parent to clear exisiting, but state reset handles UI
+                                }}
+                            />
                         )}
 
-                        <div className="border border-dashed border-gray-300 p-6 rounded-lg text-center">
-                            <Icons.Certificate className="mx-auto h-10 w-10 text-gray-300 mb-2" />
-                            <h4 className="font-medium text-gray-900">Certificate Template</h4>
-                            <p className="text-sm text-gray-500 mb-4">
-                                {isEditing ? "Upload new to replace existing" : "Upload background image for completion certificates"}
-                            </p>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => setCertificateFile(e.target.files[0])}
-                                className="hidden"
-                                id="cert-upload"
-                            />
-                            <label htmlFor="cert-upload">
-                                <Button type="button" variant="outline" size="sm" as="span">
-                                    {certificateFile ? certificateFile.name : "Upload Image"}
-                                </Button>
-                            </label>
-                        </div>
+                        <TemplateUploader
+                            label="Certificate Template"
+                            file={certificateFile}
+                            setFile={setCertificateFile}
+                            initialUrl={initialValues?.certificateTemplate}
+                            onRemove={() => setCertificateFile(null)}
+                        />
                     </div>
                 )}
 
