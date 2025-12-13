@@ -175,6 +175,11 @@ export const createPaymentOrder = async (orderData) => {
     return data;
 };
 
+export const verifyPayment = async (verifyData) => {
+    const { data } = await api.post('/payments/verify', verifyData);
+    return data;
+};
+
 export const enrollFree = async (programId) => {
     const { data } = await api.post('/payments/enroll-free', { programId });
     return data;
@@ -230,6 +235,11 @@ export const getAdminEnrollments = async (filters) => {
 
 export const getStudentCredentials = async (studentId, adminPassword) => {
     const res = await api.post('/admin/credentials', { studentId, adminPassword });
+    return res.data;
+};
+
+export const resendStudentCredentials = async (studentId, adminPassword) => {
+    const res = await api.post('/admin/credentials/resend', { studentId, adminPassword });
     return res.data;
 };
 

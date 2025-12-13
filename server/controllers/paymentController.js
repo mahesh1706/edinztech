@@ -14,7 +14,7 @@ const razorpay = new Razorpay({
 
 const fs = require('fs');
 const path = require('path');
-const { encrypt, generateUserCode } = require('../utils/encryption');
+const { encrypt, decrypt, generateUserCode } = require('../utils/encryption');
 
 // ... (imports)
 
@@ -275,4 +275,129 @@ const handleWebhook = asyncHandler(async (req, res) => {
     }
 });
 
-module.exports = { createOrder, handleWebhook, enrollFree };
+// @desc    Verify Razorpay Payment & Enroll User (Frontend Fallback)
+// @route   POST /api/payments/verify
+// @access  Public (Protected by Signature)
+const verifyPayment = asyncHandler(async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(body.toString())
+        .digest('hex');
+
+    if (expectedSignature === razorpay_signature) {
+        // Signature matches - Payment is Valid
+        // Now we need to enroll the user. 
+        // We can fetch the order from Razorpay to get the Notes safely.
+
+        try {
+            const order = await razorpay.orders.fetch(razorpay_order_id);
+
+            if (!order) {
+                res.status(404);
+                throw new Error('Order not found on Razorpay');
+            }
+
+            const { notes, amount, status } = order;
+            // Notes contain: programId, programType, name, email, phone
+
+            const { programId, programType, email, name, phone } = notes;
+
+            // Use the same logic as webhook to enroll
+            // Check if user exists (Idempotent creation)
+            let user = await User.findOne({ email });
+            let isNewUser = false;
+            let autoPassword = '';
+
+            if (!user) {
+                isNewUser = true;
+                autoPassword = crypto.randomBytes(8).toString('hex');
+                const userCode = generateUserCode();
+
+                user = await User.create({
+                    name: name || 'Student',
+                    email,
+                    phone,
+                    password: autoPassword,
+                    encryptedPassword: encrypt(autoPassword),
+                    userCode,
+                    role: 'student',
+                    isActive: true
+                });
+            }
+
+            // Create Payment Record (Idempotency Check)
+            const existingPayment = await Payment.findOne({ razorpayPaymentId: razorpay_payment_id });
+
+            let paymentId = existingPayment ? existingPayment._id : null;
+
+            if (!existingPayment) {
+                const newPayment = await Payment.create({
+                    razorpayOrderId: razorpay_order_id,
+                    razorpayPaymentId: razorpay_payment_id,
+                    user: user._id,
+                    program: programId,
+                    programType: programType,
+                    amount: amount / 100,
+                    status: 'captured' // Assumed if verified
+                });
+                paymentId = newPayment._id;
+            }
+
+            // Enroll (Idempotent: uses findOneAndUpdate upsert)
+            // Even if payment existed, we ensure enrollment exists and is linked
+            const enrollment = await createOrUpdateEnrollment({
+                userId: user._id,
+                programId,
+                source: 'razorpay',
+                paymentId: paymentId,
+                userCode: user.userCode,
+                programType
+            });
+
+            console.log(`[Verify] Manual Verification Success: ${email} -> ${programId}`);
+
+            // Send Email (Only if new user or new payment? Email service might handle duplicate checks or we accept minor spam on retry)
+            // Ideally only if !existingPayment
+            if (!existingPayment && isNewUser) {
+                sendEmail({
+                    to: user.email,
+                    subject: 'Welcome to EdinzTech - Login Credentials',
+                    html: `Welcome ${user.name}!<br><br>You have successfully enrolled. Login details:<br>Email: ${user.email}<br>Password: ${autoPassword}<br><a href="${process.env.FRONTEND_URL}/login">Login Here</a>`
+                }).catch(err => console.error("Email fail", err));
+            } else if (!existingPayment) {
+                // Confirmation for existing user - WITH CREDENTIALS as requested
+                let decryptedPassword = 'Not Available (Login with existing password)';
+                if (user.encryptedPassword) {
+                    decryptedPassword = decrypt(user.encryptedPassword);
+                }
+
+                sendEmail({
+                    to: user.email,
+                    subject: 'Enrollment Confirmed - EdinzTech',
+                    html: `Hi ${user.name},<br><br>
+                    Your payment was successful and you have been enrolled in the ${programType}.<br><br>
+                    Here are your login credentials:<br>
+                    <b>Username:</b> ${user.email}<br>
+                    <b>Password:</b> ${decryptedPassword}<br><br>
+                    <a href="${process.env.FRONTEND_URL}/login">Login Here</a>`
+                }).catch(err => console.error("Email fail", err));
+            }
+
+            res.json({ status: 'success', message: 'Payment verified and enrolled.' });
+
+        } catch (error) {
+            console.error("Verification Logic Error:", error);
+            res.status(500).json({ message: 'Internal Server Error during enrollment' });
+        }
+
+    } else {
+        res.status(400);
+        throw new Error('Invalid signature');
+    }
+});
+
+module.exports = { createOrder, handleWebhook, enrollFree, verifyPayment };

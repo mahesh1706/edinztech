@@ -33,10 +33,20 @@ const GuestEnrollmentForm = ({ program, onClose }) => {
                     email: data.email,
                     contact: data.phone
                 },
-                handler: function (response) {
-                    alert('Payment Successful! Check your email for login credentials.');
+                handler: async function (response) {
+                    try {
+                        await import('../../lib/api').then(mod => mod.verifyPayment({
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature
+                        }));
+                        alert('Payment Successful and Verified! Check your email for login credentials.');
+                        window.location.reload(); // Refresh to show enrollment
+                    } catch (e) {
+                        console.error("Verification Call Failed", e);
+                        alert('Payment successful but verification failed. Please contact support.');
+                    }
                     onClose();
-                    // Redirect or refresh? Maybe just close for now.
                 },
                 theme: {
                     color: "#F37254"

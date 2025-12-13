@@ -7,5 +7,6 @@ const { protect, admin } = require('../middlewares/authMiddleware');
 router.post('/invite', protect, admin, inviteStudent);
 router.get('/enrollments', protect, admin, getEnrollments);
 router.post('/credentials', protect, admin, getStudentCredentials);
+router.post('/credentials/resend', protect, admin, require('../controllers/adminController').resendCredentials);
 
 module.exports = router;

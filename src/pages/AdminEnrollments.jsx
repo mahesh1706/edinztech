@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAdminEnrollments, getStudentCredentials } from '../lib/api'; // Updated import
+import { getAdminEnrollments, getStudentCredentials, resendStudentCredentials } from '../lib/api'; // Updated import
 import { Icons } from '../components/icons';
 import Card from '../components/ui/Card';
 
@@ -13,6 +13,7 @@ export default function AdminEnrollments() {
     const [adminPassword, setAdminPassword] = useState('');
     const [credentials, setCredentials] = useState(null);
     const [credentialError, setCredentialError] = useState('');
+    const [resendStatus, setResendStatus] = useState('');
 
     useEffect(() => {
         fetchEnrollments();
@@ -37,23 +38,23 @@ export default function AdminEnrollments() {
         setCredentialError('');
     };
 
+    const handleResendCredentials = async () => {
+        setResendStatus('Sending...');
+        try {
+            await resendStudentCredentials(selectedStudent.userId, adminPassword);
+            setResendStatus('Email Sent Successfully!');
+            setTimeout(() => setResendStatus(''), 5000);
+        } catch (err) {
+            setResendStatus('Failed: ' + (err.response?.data?.message || 'Server Error'));
+        }
+    };
+
     const submitCredentialsView = async (e) => {
         e.preventDefault();
         setCredentialError('');
         try {
-            const data = await getStudentCredentials(selectedStudent._id, adminPassword); // Pass correct student ID
-            // Ideally backend returns userCode, username, password. 
-            // Note: adminController logic needs studentId. 
-            // The enrollment endpoint returns `_id` as enrollment ID. 
-            // Check adminController.js getEnrollments formatted object.
-            // Wait, enrollment object has student info but NOT student ID at top level directly. 
-            // Checking adminController.js: formatted map returns _id: e._id (EnrollmentID). 
-            // Use e.user._id? No, formatted object doesn't have useId. 
-            // I MUST UPDATE adminController.js getEnrollments to return userId!
-            // I will assume I fix adminController first or handle it here.
-            // Let's assume formatted object has `userId`.
-            // But wait, I can just use the enrollment response if I fix backend.
-            // For now, I'll proceed assuming I add userId to backend response.
+            // Fix: Use selectedStudent.userId (Student ID) not selectedStudent._id (Enrollment ID)
+            const data = await getStudentCredentials(selectedStudent.userId, adminPassword);
             setCredentials(data);
         } catch (err) {
             setCredentialError(err.response?.data?.message || 'Verification Failed');
@@ -87,7 +88,7 @@ export default function AdminEnrollments() {
             </div>
 
             {/* Table */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-lg shadow overflow-hidden overflow-x-auto">
                 <table className="min-w-full">
                     <thead className="bg-gray-50">
                         <tr>
@@ -207,13 +208,28 @@ export default function AdminEnrollments() {
                                     <p className="text-sm text-gray-500">Password</p>
                                     <p className="font-mono text-red-600 font-bold tracking-wider">{credentials.password}</p>
                                 </div>
-                                <div className="flex justify-end mt-6">
-                                    <button
-                                        onClick={() => setSelectedStudent(null)}
-                                        className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
-                                    >
-                                        Close
-                                    </button>
+                                <div className="flex justify-between items-center mt-6">
+                                    <div className="text-sm">
+                                        {resendStatus && (
+                                            <span className={resendStatus.includes('Failed') ? 'text-red-600' : 'text-green-600'}>
+                                                {resendStatus}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={handleResendCredentials}
+                                            className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded hover:bg-indigo-50"
+                                        >
+                                            Resend Email
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedStudent(null)}
+                                            className="px-4 py-2 bg-gray-800 text-white rounded hover:bg-gray-900"
+                                        >
+                                            Close
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )}

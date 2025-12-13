@@ -5,6 +5,7 @@ const { protect } = require('../middlewares/authMiddleware');
 
 router.post('/create-order', createOrder); // Public for Guest Checkout
 router.post('/enroll-free', protect, enrollFree);
+router.post('/verify', require('../controllers/paymentController').verifyPayment); // Frontend callback
 router.post('/webhook', handleWebhook);
 
 // Diagnostic Route
