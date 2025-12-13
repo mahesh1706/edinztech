@@ -99,6 +99,109 @@ const inviteStudent = async (req, res) => {
     }
 };
 
+const getEnrollments = async (req, res) => {
+    try {
+        const { type, programId, search } = req.query;
+
+        let query = {};
+
+        // Filter by Program Type
+        if (type && type !== 'All') {
+            query.programType = type;
+        }
+
+        // Filter by Specific Program
+        if (programId) {
+            query.programId = programId;
+        }
+
+        // Fetch Enrollments with populated data
+        // We need deep population: user, program, and payment info
+        const enrollments = await Enrollment.find(query)
+            .populate('user', 'name email phone userCode')
+            .populate('program', 'title type fee')
+            .populate('paymentId', 'amount status')
+            .sort({ createdAt: -1 });
+
+        // Search Logic (Done in memory for simplicity/performance on populated fields)
+        let results = enrollments;
+        if (search) {
+            const searchLower = search.toLowerCase();
+            results = enrollments.filter(e =>
+                (e.user?.name?.toLowerCase().includes(searchLower)) ||
+                (e.user?.email?.toLowerCase().includes(searchLower)) ||
+                (e.program?.title?.toLowerCase().includes(searchLower))
+            );
+        }
+
+        // Format for frontend
+        const formatted = results.map(e => ({
+            _id: e._id, // Enrollment ID
+            userId: e.user?._id, // Student User ID for actions
+            userCode: e.userCode || e.user?.userCode || 'N/A', // Denormalized > Populated
+            studentName: e.user?.name || 'Unknown',
+            email: e.user?.email || 'Unknown',
+            phone: e.user?.phone || 'N/A',
+            programName: e.program?.title || 'Unknown',
+            programType: e.programType || e.program?.type || 'N/A',
+            amount: e.paymentId?.amount ? `₹${e.paymentId.amount}` : (e.program?.fee ? `₹${e.program.fee}` : 'Free'),
+            status: e.paymentId?.status || 'Active', // Fallback
+            enrolledAt: e.enrolledAt
+        }));
+
+        res.json(formatted);
+
+    } catch (error) {
+        console.error("Get Enrollments Error:", error);
+        res.status(500).json({ message: 'Failed to fetch enrollments' });
+    }
+};
+
+const AccessLog = require('../models/AccessLog');
+const { decrypt } = require('../utils/encryption');
+
+const getStudentCredentials = async (req, res) => {
+    try {
+        const { studentId, adminPassword } = req.body;
+        const adminUser = await User.findById(req.user._id).select('+password');
+
+        if (!adminUser || !await adminUser.matchPassword(adminPassword)) {
+            return res.status(401).json({ message: 'Invalid Admin Password' });
+        }
+
+        const student = await User.findById(studentId).select('+encryptedPassword');
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        let decryptedPassword = 'Not Available';
+        if (student.encryptedPassword) {
+            decryptedPassword = decrypt(student.encryptedPassword);
+        }
+
+        // Audit Log
+        await AccessLog.create({
+            adminId: req.user._id,
+            targetUserId: student._id,
+            action: 'VIEW_CREDENTIALS',
+            ipAddress: req.ip,
+            metadata: { userCode: student.userCode }
+        });
+
+        res.json({
+            userCode: student.userCode || 'N/A',
+            username: student.email,
+            password: decryptedPassword
+        });
+
+    } catch (error) {
+        console.error("Get Credentials Error:", error);
+        res.status(500).json({ message: 'Failed to retrieve credentials' });
+    }
+};
+
 module.exports = {
-    inviteStudent
+    inviteStudent,
+    getEnrollments,
+    getStudentCredentials
 };

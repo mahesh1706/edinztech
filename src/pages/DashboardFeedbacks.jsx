@@ -12,7 +12,7 @@ export default function DashboardFeedbacks() {
         const fetchFeedbacks = async () => {
             try {
                 const data = await getMyFeedbacks();
-                setFeedbacks(data);
+                setFeedbacks(processFeedbacks(data));
             } catch (error) {
                 console.error("Failed to load feedbacks", error);
             } finally {
@@ -23,7 +23,8 @@ export default function DashboardFeedbacks() {
     }, []);
 
     const getStatusBadge = (status) => {
-        switch (status) {
+        const effectiveStatus = status || 'Available'; // Default to Available if backend doesn't send status
+        switch (effectiveStatus) {
             case 'Available':
                 return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">Available</span>;
             case 'Completed':
@@ -35,6 +36,11 @@ export default function DashboardFeedbacks() {
             default:
                 return null;
         }
+    };
+
+    // Helper to inject status if missing
+    const processFeedbacks = (data) => {
+        return data.map(f => ({ ...f, userStatus: f.userStatus || 'Available' }));
     };
 
     if (loading) return (

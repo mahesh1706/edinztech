@@ -1,5 +1,5 @@
 const eventBus = require('./eventBus');
-const certificateService = require('../services/certificateService');
+const certificateService = require('../services/certificateGenerator');
 const emailService = require('../services/emailService');
 const Certificate = require('../models/Certificate');
 const Enrollment = require('../models/Enrollment');
@@ -44,16 +44,14 @@ eventBus.on('PROGRAM_COMPLETED', async ({ user, programId, quizAttempt }) => {
         const Program = require('../models/Program'); // Lazy load
         const program = await Program.findById(programId);
 
-        const certificateCode = `CERT-${uuidv4().substring(0, 8).toUpperCase()}`;
-
-        const { filePath } = await certificateService.generateCertificate(user, program, certificateCode);
+        const { path: fileUrl, code: generatedCode } = await certificateService.generateCertificate(user, program);
 
         // 2. Save Certificate Record
         await Certificate.create({
             user: user._id,
             program: programId,
-            certificateCode,
-            fileUrl: filePath // Or Upload to Cloudinary and save URL here
+            certificateCode: generatedCode,
+            fileUrl: fileUrl
         });
 
         // 3. Update Enrollment Status

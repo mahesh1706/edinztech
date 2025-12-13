@@ -26,7 +26,19 @@ const app = express();
 connectDB();
 
 // Middleware
-app.use(express.json());
+// Middleware
+app.use((req, res, next) => {
+    if (req.path === '/api/payments/webhook') {
+        console.log(`[Req Log] Webhook Hit: ${req.method} ${req.path}`);
+    }
+    next();
+});
+
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
 app.use(cors()); // Allow frontend to connect
 app.use(helmet({
     crossOriginResourcePolicy: false, // Allow loading images from uploads
@@ -37,13 +49,14 @@ if (process.env.NODE_ENV === 'development') {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/programs', programRoutes);
+app.use('/api/me', require('./routes/meRoutes'));
+app.use('/api/programs', require('./routes/programRoutes'));
 app.use('/api/payments', paymentRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/certificates', certificateRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/me', meRoutes);
+// app.use('/api/me', meRoutes); // This line is removed as per the instruction's implied change
 
 // Static Folder for Uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

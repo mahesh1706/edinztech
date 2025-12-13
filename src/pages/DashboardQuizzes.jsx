@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
-import { getStudentQuizzes } from '../lib/api';
+import { getMyQuizzes } from '../lib/api';
 import { Link } from 'react-router-dom';
 
 export default function DashboardQuizzes() {
@@ -11,7 +11,7 @@ export default function DashboardQuizzes() {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const data = await getStudentQuizzes();
+                const data = await getMyQuizzes();
                 setQuizzes(data);
             } catch (error) {
                 console.error("Failed to load quizzes", error);

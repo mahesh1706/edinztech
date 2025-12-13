@@ -32,6 +32,7 @@ export default function AdminSidebar() {
                 <SidebarItem to="/admin" end icon={Icons.Home}>Dashboard</SidebarItem>
                 <SidebarItem to="/admin/programs" icon={Icons.Courses}>Programs</SidebarItem>
                 <SidebarItem to="/admin/invite" icon={Icons.UserPlus}>Invite Student</SidebarItem>
+                <SidebarItem to="/admin/enrollments" icon={Icons.Users}>Enrolled Students</SidebarItem>
 
                 <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 mt-6 px-2">Assessment</div>
                 <SidebarItem to="/admin/quizzes" icon={Icons.Quiz}>Quizzes</SidebarItem>

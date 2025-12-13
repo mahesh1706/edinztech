@@ -12,28 +12,72 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-// @desc    Create Razorpay Order
+const fs = require('fs');
+const path = require('path');
+const { encrypt, generateUserCode } = require('../utils/encryption');
+
+// ... (imports)
+
+// @desc    Create Razorpay Order (Guest/DB-Driven)
 // @route   POST /api/payments/create-order
-// @access  Private
+// @access  Public
 const createOrder = asyncHandler(async (req, res) => {
-    const { amount, currency = 'INR', programId, notes } = req.body;
-
-    const options = {
-        amount: amount * 100, // amount in smallest currency unit
-        currency,
-        receipt: `receipt_${Date.now()}`,
-        notes: {
-            ...notes,
-            programId
-        }
-    };
-
     try {
+        const { programId, name, email, phone, programType } = req.body;
+        // NOTE: 'amount' from frontend is IGNORED for security.
+
+        if (!name || !email || !phone) {
+            res.status(400);
+            throw new Error('Please provide name, email, and phone');
+        }
+
+        console.log(`[CreateOrder] Request for Program: ${programId}, User: ${email}`);
+
+        const program = await Program.findById(programId);
+        if (!program) {
+            res.status(404);
+            throw new Error('Program not found');
+        }
+
+        if (program.paymentMode !== 'Paid') {
+            res.status(400);
+            throw new Error('This program does not require payment');
+        }
+
+        const fee = program.fee;
+        if (!fee || fee <= 0) {
+            res.status(400);
+            throw new Error('Invalid program fee');
+        }
+
+        const options = {
+            amount: Math.round(fee * 100), // Convert to paise
+            currency: 'INR',
+            receipt: `rcpt_${Date.now().toString().slice(-10)}_${Math.floor(Math.random() * 10000)}`, // Max 40 chars
+            notes: {
+                programId: program._id.toString(),
+                programType: programType || program.type, // Fallback to DB type
+                name,
+                email,
+                phone
+            }
+        };
+
+        console.log(`[CreateOrder] Options prepared:`, JSON.stringify(options));
+
         const order = await razorpay.orders.create(options);
         res.json(order);
     } catch (error) {
+        const logMsg = `[Error Details] ${new Date().toISOString()}
+Type: ${typeof error}
+Message: ${error.message}
+Stack: ${error.stack}
+JSON: ${JSON.stringify(error, Object.getOwnPropertyNames(error))}
+`;
+        fs.appendFileSync(path.join(__dirname, '../error.log'), logMsg);
+        console.error(error);
         res.status(500);
-        throw new Error(error.message);
+        throw error;
     }
 });
 
@@ -84,15 +128,48 @@ const enrollFree = asyncHandler(async (req, res) => {
 // @desc    Handle Razorpay Webhook
 // @route   POST /api/payments/webhook
 // @access  Public (Webhook)
+// @desc    Handle Razorpay Webhook
+// @route   POST /api/payments/webhook
+// @access  Public (Webhook)
 const handleWebhook = asyncHandler(async (req, res) => {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-    // Validate signature
+    // File Logging Helper
+    const logToFile = (msg) => {
+        const timestamp = new Date().toISOString();
+        const logLine = `[${timestamp}] ${msg}\n`;
+        try {
+            fs.appendFileSync(path.join(__dirname, '../debug_webhook.log'), logLine);
+            console.log(msg);
+        } catch (e) {
+            console.error("Failed to write to debug log", e);
+        }
+    };
+
+    logToFile("------------------------------------------------");
+    logToFile("[Webhook Debug] Hit Received");
+    logToFile(`[Webhook Debug] Headers: ${JSON.stringify(req.headers)}`);
+    logToFile(`[Webhook Debug] Raw Body Type: ${typeof req.rawBody}`);
+    logToFile(`[Webhook Debug] Raw Body exists? ${!!req.rawBody}`);
+    if (req.rawBody) logToFile(`[Webhook Debug] Body Length: ${req.rawBody.length}`);
+    logToFile(`[Webhook Debug] Secret exists? ${!!secret}`);
+
+    // Validate signature using RAW BODY
     const shasum = crypto.createHmac('sha256', secret);
-    shasum.update(JSON.stringify(req.body));
+    // Safety check for rawBody
+    if (!req.rawBody) {
+        console.error("[Webhook Debug] CRITICAL: req.rawBody is missing! Signature verification will fail.");
+        return res.status(400).json({ error: "Raw body missing" });
+    }
+
+    shasum.update(req.rawBody); // Critical: Use raw buffer
     const digest = shasum.digest('hex');
 
+    console.log(`[Webhook Debug] Computed Digest: ${digest}`);
+    console.log(`[Webhook Debug] Received Signature: ${req.headers['x-razorpay-signature']}`);
+
     if (digest === req.headers['x-razorpay-signature']) {
+        console.log("[Webhook Debug] Signature MATCHED");
         const event = req.body.event;
         const payload = req.body.payload;
 
@@ -104,29 +181,36 @@ const handleWebhook = asyncHandler(async (req, res) => {
             const userPhone = notes.phone || contact;
             const userName = notes.name || 'Student';
             const programId = notes.programId;
+            const programType = notes.programType || 'Course'; // Default fallback
 
+            // Check if user exists (Idempotent creation)
             if (userEmail && programId) {
-                // 1. Find or Create User
                 let user = await User.findOne({ email: userEmail });
                 let isNewUser = false;
                 let autoPassword = '';
 
                 if (!user) {
                     isNewUser = true;
-                    autoPassword = crypto.randomBytes(4).toString('hex');
+                    autoPassword = crypto.randomBytes(8).toString('hex'); // Stronger password
+
+                    const userCode = generateUserCode();
 
                     user = await User.create({
                         name: userName,
                         email: userEmail,
                         phone: userPhone,
                         password: autoPassword,
+                        encryptedPassword: encrypt(autoPassword),
+                        userCode: userCode,
                         role: 'student',
                         isActive: true
                     });
+                    console.log(`[Webhook] Created new user: ${userEmail} (${userCode})`);
+                } else {
+                    console.log(`[Webhook] Found existing user: ${userEmail}`);
                 }
 
-                // 2. Create Payment Record (check if exists first for idempotency?)
-                // Webhooks can send duplicates. IDempotency key usually header, but here simplify.
+                // 2. Create Payment Record (Idempotency Check)
                 const existingPayment = await Payment.findOne({ razorpayPaymentId: paymentId });
 
                 if (!existingPayment) {
@@ -135,37 +219,58 @@ const handleWebhook = asyncHandler(async (req, res) => {
                         razorpayPaymentId: paymentId,
                         user: user._id,
                         program: programId,
+                        programType: programType,
                         amount: amount / 100,
                         status: 'captured'
                     });
+                    console.log(`[Webhook] Recorded payment: ${newPayment._id}`);
 
-                    // 3. Enroll User
-                    await createOrUpdateEnrollment({
-                        userId: user._id,
-                        programId,
-                        source: 'razorpay',
-                        paymentId: newPayment._id
-                    });
+                    // 3. Enroll User (Explicit Logic)
+                    const enrollment = await require('../models/Enrollment').findOneAndUpdate(
+                        {
+                            user: user._id,
+                            program: programId
+                        },
+                        {
+                            user: user._id,
+                            program: programId,
+                            programType: programType,
+                            userCode: user.userCode, // Denormalized ID
+                            paymentId: newPayment._id,
+                            status: 'active',
+                            source: 'razorpay',
+                            enrolledAt: new Date(),
+                            // Default validity 1 year if not calculated (simplified for webhook)
+                            validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+                        },
+                        { upsert: true, new: true }
+                    );
+                    logToFile(`[Webhook] Enrolled user: ${enrollment._id}`);
+                    console.log(`[Webhook] Enrolled user in program: ${programId}`);
 
                     // 4. Send Email
                     if (isNewUser) {
                         await sendEmail({
-                            email: user.email,
+                            to: user.email,
                             subject: 'Welcome to EdinzTech - Login Credentials',
-                            message: `Welcome ${user.name}! You have successfully enrolled. Your login details: \nUsername: ${user.email}\nPassword: ${autoPassword}\nLog in here: ${process.env.FRONTEND_URL}/login`
+                            html: `Welcome ${user.name}!<br><br>You have successfully enrolled in the ${programType}. Here are your login details:<br><br>Email: ${user.email}<br>Password: ${autoPassword}<br><br>Please login at: <a href="${process.env.FRONTEND_URL}/login">${process.env.FRONTEND_URL}/login</a>`
                         });
                     } else {
                         await sendEmail({
-                            email: user.email,
+                            to: user.email,
                             subject: 'Enrollment Confirmed - EdinzTech',
-                            message: `Hi ${user.name}, your payment was successful and you have been enrolled.`
+                            html: `Hi ${user.name},<br><br>Your payment was successful and you have been enrolled in the ${programType}.`
                         });
                     }
+                } else {
+                    logToFile(`[Webhook] Skipped duplicate payment: ${paymentId}`);
                 }
             }
         }
         res.json({ status: 'ok' });
     } else {
+        logToFile("[Webhook] Invalid signature");
+        console.error("Invalid Webhook Signature");
         res.status(400).json({ error: 'Invalid signature' });
     }
 });

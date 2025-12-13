@@ -15,6 +15,10 @@ const paymentSchema = mongoose.Schema({
         required: true,
         ref: 'Program'
     },
+    programType: {
+        type: String,
+        enum: ['Course', 'Internship', 'Workshop']
+    },
     amount: { type: Number, required: true },
     currency: { type: String, default: 'INR' },
     status: {

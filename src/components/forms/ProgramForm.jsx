@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -100,12 +100,11 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
         if (currentStep === 0) {
             isValid = await trigger(['title', 'description', 'type', 'startDate', 'endDate', 'mode', 'startTime', 'endTime']);
         } else if (currentStep === 1) {
-            isValid = await trigger(['paymentMode', 'fee', 'registrationLink']);
+            isValid = await trigger(['paymentMode', 'fee']);
             // Manual check for Paid mode safety:
             if (isValid && paymentMode === 'Paid') {
-                if (!getValues('fee') || !getValues('registrationLink')) {
+                if (!getValues('fee')) {
                     await trigger('fee');
-                    await trigger('registrationLink');
                     return;
                 }
             }
@@ -219,6 +218,17 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
         }
     };
 
+    // Auto-generate Program Code when Type changes
+    useEffect(() => {
+        if (!isEditing && programType) {
+            const date = new Date();
+            const typeCode = programType.toUpperCase().slice(0, 3);
+            const uniqueNum = Math.floor(100 + Math.random() * 900); // Random 3-digit number
+            const code = `EDZ-${date.getFullYear()}-${typeCode}-${uniqueNum}`;
+            setValue('code', code, { shouldDirty: true, shouldTouch: true });
+        }
+    }, [programType, isEditing, setValue]);
+
     return (
         <div className="space-y-8 animate-in fade-in">
 
@@ -262,22 +272,15 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                                         options={['Course', 'Internship', 'Workshop']}
                                         error={errors.type?.message}
                                         {...field}
-                                        onChange={(value) => {
-                                            field.onChange(value);
-                                            // Only auto-generate code if NOT editing or field empty
-                                            if (!isEditing) {
-                                                const date = new Date();
-                                                setValue('code', `EDZ-${date.getFullYear()}-${value.toUpperCase().slice(0, 3)}-XXX`);
-                                            }
-                                        }}
                                     />
                                 )}
                             />
                             <Input
                                 label="Program Code"
                                 {...register('code')}
+                                value={watch('code') || ''}
                                 disabled
-                                className="bg-gray-50"
+                                className="bg-gray-50 bg-opacity-50 text-gray-500 cursor-not-allowed"
                             />
                         </div>
 
@@ -340,12 +343,16 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                                     {...register('fee')}
                                     error={errors.fee?.message}
                                 />
-                                <Input
-                                    label="Registration / Payment Link"
-                                    {...register('registrationLink')}
-                                    placeholder="https://razorpay.me/..."
-                                    error={errors.registrationLink?.message}
-                                />
+                                <div className="bg-blue-50 text-blue-700 p-4 rounded-lg text-sm flex items-start gap-2">
+                                    <Icons.Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="font-medium">Automatic Payment Processing</p>
+                                        <p className="mt-1 text-blue-600">
+                                            Payments are processed automatically via Razorpay during checkout.
+                                            No manual payment links are required.
+                                        </p>
+                                    </div>
+                                </div>
                             </>
                         )}
                         {errors.fee && <p className="text-danger text-sm">{errors.fee.message}</p>}

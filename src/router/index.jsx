@@ -38,6 +38,7 @@ import AdminFeedbacksEdit from '../pages/AdminFeedbacksEdit';
 import AdminTemplateCertificate from '../pages/admin/templates/certificate';
 import AdminTemplateOfferLetter from '../pages/admin/templates/offer-letter';
 import AdminInvitePage from '../pages/admin/invite';
+import AdminEnrollments from '../pages/AdminEnrollments';
 
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 
@@ -94,6 +95,7 @@ export const router = createBrowserRouter([
             { path: '/admin/certificates', element: <AdminTemplateCertificate /> },
             { path: '/admin/offer-letters', element: <AdminTemplateOfferLetter /> },
             { path: '/admin/invite', element: <AdminInvitePage /> },
+            { path: '/admin/enrollments', element: <AdminEnrollments /> },
         ],
     },
 ]);

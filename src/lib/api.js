@@ -37,7 +37,7 @@ api.interceptors.response.use(
         if (error.response && error.response.status === 401) {
             // Not authorized, clear token and redirect (optional)
             localStorage.removeItem('userInfo');
-            // window.location.href = '/login'; // Force login if needed
+            window.location.href = '/login'; // Force login if needed
         }
         return Promise.reject(error);
     }
@@ -140,7 +140,27 @@ export const getMyEnrollments = async () => {
 };
 
 export const getDashboardOverview = async () => {
-    const { data } = await api.get('/me/dashboard-overview');
+    const { data } = await api.get('/me/dashboard');
+    return data;
+};
+
+export const getMyQuizzes = async () => {
+    const { data } = await api.get('/me/quizzes');
+    return data;
+};
+
+export const getMyQuiz = async (id) => {
+    const { data } = await api.get(`/me/quizzes/${id}`);
+    return data;
+};
+
+export const getMyFeedbacks = async () => {
+    const { data } = await api.get('/me/feedbacks');
+    return data;
+};
+
+export const getMyFeedback = async (id) => {
+    const { data } = await api.get(`/me/feedbacks/${id}`);
     return data;
 };
 
@@ -196,9 +216,21 @@ export const deleteFeedback = async (id) => {
     return data;
 };
 
-export const getMyFeedbacks = async () => {
-    const { data } = await api.get('/feedback/me');
-    return data;
+// Duplicate removed
+export const getMyFeedbacksOld = async () => {
+    // Deprecated
+    return [];
+};
+
+export const getAdminEnrollments = async (filters) => {
+    const params = new URLSearchParams(filters).toString();
+    const res = await api.get(`/admin/enrollments?${params}`);
+    return res.data;
+};
+
+export const getStudentCredentials = async (studentId, adminPassword) => {
+    const res = await api.post('/admin/credentials', { studentId, adminPassword });
+    return res.data;
 };
 
 export const getFeedbackForSubmission = async (id) => {

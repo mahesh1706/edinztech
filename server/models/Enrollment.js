@@ -6,10 +6,18 @@ const enrollmentSchema = mongoose.Schema({
         required: true,
         ref: 'User'
     },
+    userCode: {
+        type: String, // Denormalized for analytics/certificates
+        sparse: true
+    },
     program: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: 'Program'
+    },
+    programType: {
+        type: String,
+        enum: ['Course', 'Internship', 'Workshop']
     },
     status: {
         type: String,

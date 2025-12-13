@@ -36,6 +36,15 @@ const userSchema = mongoose.Schema({
         type: Boolean,
         required: true,
         default: false
+    },
+    userCode: {
+        type: String,
+        unique: true,
+        sparse: true
+    },
+    encryptedPassword: {
+        type: String,
+        select: false // Strict security: never return by default
     }
 }, {
     timestamps: true

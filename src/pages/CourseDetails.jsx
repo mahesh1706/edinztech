@@ -4,6 +4,7 @@ import { getProgram, createPaymentOrder, enrollFree } from '../lib/api';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import GuestEnrollmentForm from '../components/forms/GuestEnrollmentForm';
 
 export default function CourseDetails() {
     const { id } = useParams();
@@ -11,6 +12,7 @@ export default function CourseDetails() {
     const [program, setProgram] = useState(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [showEnrollForm, setShowEnrollForm] = useState(false);
 
     // Auth check
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
@@ -42,73 +44,8 @@ export default function CourseDetails() {
         };
     }, [id]);
 
-    const handleEnroll = async () => {
-        if (!isAuthenticated) {
-            navigate('/login?redirect=/programs/' + id);
-            return;
-        }
-
-        setProcessing(true);
-        try {
-            if (program.fee === 0 || program.paymentMode === 'Free') {
-                await enrollFree(program._id);
-                navigate('/success', {
-                    state: {
-                        title: "Enrollment Successful",
-                        message: "You have been successfully enrolled in this program!",
-                        redirect: "/dashboard"
-                    }
-                });
-                return;
-            }
-
-            // Paid Flow
-            const order = await createPaymentOrder({
-                amount: program.fee,
-                programId: program._id,
-                notes: {
-                    email: user.email,
-                    name: user.name,
-                    phone: user.phone
-                }
-            });
-
-            // 2. Razorpay Options
-            const options = {
-                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-                amount: order.amount,
-                currency: order.currency,
-                name: "EdinzTech",
-                description: `Enrollment for ${program.title}`,
-                order_id: order.id,
-                handler: function (response) {
-                    navigate('/success', {
-                        state: {
-                            title: "Payment Successful",
-                            message: "Thank you for your purchase! You have been enrolled.",
-                            redirect: "/dashboard"
-                        }
-                    });
-                },
-                prefill: {
-                    name: user.name,
-                    email: user.email,
-                    contact: user.phone
-                },
-                theme: {
-                    color: "#F37021"
-                }
-            };
-
-            const rzp1 = new window.Razorpay(options);
-            rzp1.open();
-
-        } catch (err) {
-            console.error("Enrollment failed", err);
-            alert(err.response?.data?.message || "Failed to enroll. Please try again.");
-        } finally {
-            setProcessing(false);
-        }
+    const handleEnroll = () => {
+        setShowEnrollForm(true);
     };
 
     if (loading) return <div className="p-10 text-center">Loading...</div>;
@@ -117,7 +54,13 @@ export default function CourseDetails() {
     const tags = ["Beginner Friendly", "Certificate", "Live Support"]; // Mock tags for now if DB logic missing tags
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-5 duration-500">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-5 duration-500 relative">
+            {showEnrollForm && (
+                <GuestEnrollmentForm
+                    program={program}
+                    onClose={() => setShowEnrollForm(false)}
+                />
+            )}
 
             {/* Left Content */}
             <div className="lg:col-span-2 space-y-8">
