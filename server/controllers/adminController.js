@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const Program = require('../models/Program');
-const sendEmail = require('../services/emailService');
+const { sendEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const eventBus = require('../events/eventBus');
@@ -200,8 +200,54 @@ const getStudentCredentials = async (req, res) => {
     }
 };
 
+// ... existing code ...
+
+const resendCredentials = async (req, res) => {
+    try {
+        const { studentId, adminPassword } = req.body;
+        const adminUser = await User.findById(req.user._id).select('+password');
+
+        if (!adminUser || !await adminUser.matchPassword(adminPassword)) {
+            return res.status(401).json({ message: 'Invalid Admin Password' });
+        }
+
+        const student = await User.findById(studentId).select('+encryptedPassword');
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        let decryptedPassword = 'Not Available';
+        if (student.encryptedPassword) {
+            decryptedPassword = decrypt(student.encryptedPassword);
+        }
+
+        // Send Email
+        const emailSent = await sendEmail({
+            to: student.email,
+            subject: 'Login Credentials (Resent) - EdinzTech',
+            html: `<h3>Login Credentials</h3>
+                   <p>Hello ${student.name},</p>
+                   <p>Here are your login details as requested:</p>
+                   <p><b>Username:</b> ${student.email}</p>
+                   <p><b>Password:</b> ${decryptedPassword}</p>
+                   <p><a href="${process.env.FRONTEND_URL}/login">Login Here</a></p>`
+        });
+
+        if (emailSent) {
+            res.json({ message: 'Credentials sent successfully to ' + student.email });
+        } else {
+            res.status(500).json({ message: 'Failed to send email. Check server logs.' });
+        }
+
+    } catch (error) {
+        console.error("Resend Credentials Error:", error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
 module.exports = {
     inviteStudent,
     getEnrollments,
-    getStudentCredentials
+    getStudentCredentials,
+    resendCredentials
 };

@@ -47,9 +47,22 @@ const computeValidUntil = (program, enrolledAt = new Date()) => {
 /**
  * Create or Update Enrollment
  */
-const createOrUpdateEnrollment = async ({ userId, programId, source = 'razorpay', paymentId }) => {
+const createOrUpdateEnrollment = async ({ userId, programId, source = 'razorpay', paymentId, userCode, programType }) => {
     const program = await Program.findById(programId);
     if (!program) throw new Error('Program not found');
+
+    const typeToSave = programType || program.type;
+
+    // If userCode is not provided, fetch it? 
+    // Ideally caller provides it. if not, we can query User if strictly needed, 
+    // but for now let's assume caller provides it or we accept it missing if not passed.
+    // Better: If missing, fetch user to ensure data integrity.
+    let finalUserCode = userCode;
+    if (!finalUserCode) {
+        const User = require('../models/User');
+        const user = await User.findById(userId);
+        if (user) finalUserCode = user.userCode;
+    }
 
     let enrollment = await Enrollment.findOne({ user: userId, program: programId });
 
@@ -59,9 +72,13 @@ const createOrUpdateEnrollment = async ({ userId, programId, source = 'razorpay'
     if (enrollment) {
         // Reactivate if expired or update payment info
         enrollment.status = 'active';
-        enrollment.validUntil = validUntil; // Extend validity? Or reset? Let's reset/extend.
+        enrollment.validUntil = validUntil;
         enrollment.source = source;
         if (paymentId) enrollment.paymentId = paymentId;
+        // Update denormalized fields if missing or changed
+        if (finalUserCode) enrollment.userCode = finalUserCode;
+        if (typeToSave) enrollment.programType = typeToSave;
+
         await enrollment.save();
     } else {
         enrollment = await Enrollment.create({
@@ -71,7 +88,9 @@ const createOrUpdateEnrollment = async ({ userId, programId, source = 'razorpay'
             validUntil,
             source,
             paymentId,
-            progressPercent: 0
+            progressPercent: 0,
+            userCode: finalUserCode,
+            programType: typeToSave
         });
     }
 

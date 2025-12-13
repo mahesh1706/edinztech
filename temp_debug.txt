@@ -1,0 +1,15 @@
+﻿[2025-12-13T08:06:55.941Z] ------------------------------------------------
+[2025-12-13T08:06:55.944Z] [Webhook Debug] Hit Received
+[2025-12-13T08:06:55.945Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"d79bc3560a92e3662f021a8560a3f9ea2af7034d40c813094e001c18d5c7ee66","user-agent":"axios/1.13.2","content-length":"544","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T08:06:55.947Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T08:06:55.949Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T08:06:55.951Z] [Webhook Debug] Body Length: 544
+[2025-12-13T08:06:55.953Z] [Webhook Debug] Secret exists? true
+[2025-12-13T08:06:56.305Z] [Webhook] Enrolled user: 693d1ea0d8403fd321173c05
+[2025-12-13T10:35:57.021Z] ------------------------------------------------
+[2025-12-13T10:35:57.026Z] [Webhook Debug] Hit Received
+[2025-12-13T10:35:57.028Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"8b155aacfa4c2238d7236b5c38e2e3b49a7bab9cfc5792c62c58deb4b0f51126","user-agent":"axios/1.13.2","content-length":"490","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T10:35:57.029Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T10:35:57.030Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T10:35:57.032Z] [Webhook Debug] Body Length: 490
+[2025-12-13T10:35:57.033Z] [Webhook Debug] Secret exists? true

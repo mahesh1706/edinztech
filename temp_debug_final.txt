@@ -1,0 +1,38 @@
+﻿[2025-12-13T08:06:55.941Z] ------------------------------------------------
+[2025-12-13T08:06:55.944Z] [Webhook Debug] Hit Received
+[2025-12-13T08:06:55.945Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"d79bc3560a92e3662f021a8560a3f9ea2af7034d40c813094e001c18d5c7ee66","user-agent":"axios/1.13.2","content-length":"544","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T08:06:55.947Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T08:06:55.949Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T08:06:55.951Z] [Webhook Debug] Body Length: 544
+[2025-12-13T08:06:55.953Z] [Webhook Debug] Secret exists? true
+[2025-12-13T08:06:56.305Z] [Webhook] Enrolled user: 693d1ea0d8403fd321173c05
+[2025-12-13T10:35:57.021Z] ------------------------------------------------
+[2025-12-13T10:35:57.026Z] [Webhook Debug] Hit Received
+[2025-12-13T10:35:57.028Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"8b155aacfa4c2238d7236b5c38e2e3b49a7bab9cfc5792c62c58deb4b0f51126","user-agent":"axios/1.13.2","content-length":"490","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T10:35:57.029Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T10:35:57.030Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T10:35:57.032Z] [Webhook Debug] Body Length: 490
+[2025-12-13T10:35:57.033Z] [Webhook Debug] Secret exists? true
+[2025-12-13T10:38:47.680Z] ------------------------------------------------
+[2025-12-13T10:38:47.684Z] [Webhook Debug] Hit Received
+[2025-12-13T10:38:47.685Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"19caf41f4a622de4bfee811994443f712efc7603ef132aada7adb493fb8a5cc3","user-agent":"axios/1.13.2","content-length":"490","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T10:38:47.687Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T10:38:47.688Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T10:38:47.689Z] [Webhook Debug] Body Length: 490
+[2025-12-13T10:38:47.691Z] [Webhook Debug] Secret exists? true
+[2025-12-13T10:38:47.947Z] [Webhook] Created new user: verify_creds_9fb37711@example.com
+[2025-12-13T10:38:47.957Z] [Webhook CRASH] Payment validation failed: programType: `Test Program` is not a valid enum value for path `programType`.
+[2025-12-13T10:38:47.959Z] ValidationError: Payment validation failed: programType: `Test Program` is not a valid enum value for path `programType`.
+    at Document.invalidate (D:\Assuvar\edinztech\server\node_modules\mongoose\lib\document.js:3362:32)
+    at D:\Assuvar\edinztech\server\node_modules\mongoose\lib\document.js:3123:17
+    at D:\Assuvar\edinztech\server\node_modules\mongoose\lib\schemaType.js:1446:9
+    at process.processTicksAndRejections (node:internal/process/task_queues:77:11)
+[2025-12-13T10:39:10.587Z] ------------------------------------------------
+[2025-12-13T10:39:10.590Z] [Webhook Debug] Hit Received
+[2025-12-13T10:39:10.592Z] [Webhook Debug] Headers: {"accept":"application/json, text/plain, */*","content-type":"application/json","x-razorpay-signature":"4fbc6a11b15bf9fd6226eafc38563831ef05b553d5da5f6fbd9053431c1eb4bc","user-agent":"axios/1.13.2","content-length":"484","accept-encoding":"gzip, compress, deflate, br","host":"localhost:5000","connection":"keep-alive"}
+[2025-12-13T10:39:10.593Z] [Webhook Debug] Raw Body Type: object
+[2025-12-13T10:39:10.594Z] [Webhook Debug] Raw Body exists? true
+[2025-12-13T10:39:10.595Z] [Webhook Debug] Body Length: 484
+[2025-12-13T10:39:10.597Z] [Webhook Debug] Secret exists? true
+[2025-12-13T10:39:10.852Z] [Webhook] Created new user: verify_creds_e8049bd6@example.com
+[2025-12-13T10:39:10.879Z] [Webhook] Enrolled user: 693d424ed8403fd321173c06
