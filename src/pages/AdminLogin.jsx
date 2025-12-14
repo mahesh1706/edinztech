@@ -12,7 +12,7 @@ const loginSchema = z.object({
     password: z.string().min(1, 'Password is required'),
 });
 
-export default function Login() {
+export default function AdminLogin() {
     const navigate = useNavigate();
 
     const {
@@ -26,9 +26,7 @@ export default function Login() {
 
     const onSubmit = async (data) => {
         try {
-            const endpoint = '/api/auth/login';
-
-            const response = await fetch(endpoint, {
+            const response = await fetch('/api/auth/admin/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -42,10 +40,10 @@ export default function Login() {
                 throw new Error(result.message || 'Login failed');
             }
 
-            console.log('Login Success:', result);
+            console.log('Admin Login Success:', result);
             localStorage.setItem('userInfo', JSON.stringify(result));
 
-            navigate('/dashboard');
+            navigate('/admin');
         } catch (error) {
             console.error('Login Error:', error);
             setError('root', {
@@ -60,32 +58,29 @@ export default function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <div className="flex justify-center mb-6">
                     <div className="flex items-center gap-2">
-                        <Icons.Rocket size={40} className="text-primary" />
-                        <span className="text-3xl font-bold text-secondary">Edinz<span className="text-primary">Tech</span></span>
+                        <Icons.ShieldCheck size={40} className="text-primary" />
+                        <span className="text-3xl font-bold text-white">Edinz<span className="text-primary">Tech</span></span>
                     </div>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                    Student Portal
+                <h2 className="mt-2 text-center text-2xl font-bold text-white tracking-tight">
+                    Admin Portal Access
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Sign in to access your courses and certificates
-                </p>
             </div>
 
             <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <Card className="py-8 px-4 sm:rounded-lg sm:px-10 shadow-lg border-t-4 border-primary">
+                <Card className="py-8 px-4 sm:rounded-lg sm:px-10 shadow-xl border-t-4 border-primary">
                     <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
                         <div>
                             <Input
-                                label="Email address"
+                                label="Admin Email"
                                 id="email"
                                 type="email"
                                 autoComplete="email"
-                                placeholder="student@example.com"
+                                placeholder="admin@edinztech.com"
                                 {...register('email')}
                                 error={errors.email?.message}
                             />
@@ -103,26 +98,6 @@ export default function Login() {
                             />
                         </div>
 
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                                <input
-                                    id="remember-me"
-                                    name="remember-me"
-                                    type="checkbox"
-                                    className="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
-                                />
-                                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                                    Remember me
-                                </label>
-                            </div>
-
-                            <div className="text-sm">
-                                <a href="#" className="font-medium text-secondary hover:text-primary transition-colors">
-                                    Forgot your password?
-                                </a>
-                            </div>
-                        </div>
-
                         <div>
                             <Button
                                 type="submit"
@@ -130,7 +105,7 @@ export default function Login() {
                                 isLoading={isSubmitting}
                                 variant="primary"
                             >
-                                Sign in
+                                Sign in as Admin
                             </Button>
                         </div>
                     </form>
@@ -142,12 +117,14 @@ export default function Login() {
                             </div>
                             <div className="relative flex justify-center text-sm">
                                 <span className="px-2 bg-white text-gray-500">
-                                    Or
+                                    Wrong place?
                                 </span>
                             </div>
                         </div>
-                        <div className="mt-6 flex justify-center text-xs text-gray-400">
-                            <Link to="/" className="hover:text-gray-600">Back to Home</Link>
+                        <div className="mt-6 text-center">
+                            <Link to="/login" className="text-sm font-medium text-secondary hover:text-primary transition-colors">
+                                Return to Student Login
+                            </Link>
                         </div>
                     </div>
                 </Card>

@@ -16,6 +16,7 @@ import Workshops from '../pages/Workshops';
 import WorkshopDetails from '../pages/WorkshopDetails';
 import Verify from '../pages/Verify';
 import Login from '../pages/Login';
+import AdminLogin from '../pages/AdminLogin'; // Added
 import Success from '../pages/Success';
 
 // Auth Components
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
             { path: '/programs/:id', element: <CourseDetails /> },
             { path: '/verify', element: <Verify /> },
             { path: '/login', element: <Login /> },
+            { path: '/admin/login', element: <AdminLogin /> }, // Added
             { path: '/success', element: <Success /> },
             { path: '*', element: <div className="p-20 text-center text-xl">Page Not Found (Custom Catch-All)</div> },
         ],
