@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { Input, TextArea } from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import { Icons } from '../icons';
+import { Icons } from '../icons/index';
 import { createProgram, uploadProgramTemplate } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -488,46 +488,290 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                             />
                         )}
 
-                        <TemplateUploader
-                            label="Certificate Template"
-                            file={certificateFile}
-                            setFile={setCertificateFile}
-                            initialUrl={initialValues?.certificateTemplate}
-                            onRemove={() => setCertificateFile(null)}
-                        />
-                    </div>
-                )}
+                        <div className="space-y-4">
+                            <TemplateUploader
+                                label="Certificate Template"
+                                file={certificateFile}
+                                setFile={setCertificateFile}
+                                initialUrl={initialValues?.certificateTemplate}
+                                onRemove={() => setCertificateFile(null)}
+                            />
 
-                {/* Step 4: Communication */}
-                {currentStep === 3 && (
-                    <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                        <Input
-                            label="WhatsApp Group Link"
-                            {...register('whatsappGroupLink')}
-                            placeholder="https://chat.whatsapp.com/..."
-                        />
-                        <TextArea
-                            label="Welcome WhatsApp Message"
-                            {...register('whatsappMessage')}
-                            placeholder="Hello {{name}}, welcome..."
-                            rows={3}
-                        />
-                        <div className="border-t border-gray-100 my-4 pt-4">
-                            <h4 className="font-medium text-secondary mb-3">Email Template</h4>
-                            <Input
-                                label="Email Subject"
-                                {...register('emailSubject')}
-                            />
-                            <TextArea
-                                label="Email Body"
-                                {...register('emailBody')}
-                                placeholder="Dear {{name}}..."
-                                rows={4}
-                                className="mt-4"
-                            />
+                            {/* Live Preview Overlay */}
+                            {(certificateFile || initialValues?.certificateTemplate) && (
+                                <div className="mt-4 border rounded-lg p-2 bg-gray-50 text-center">
+                                    <h4 className="text-sm font-medium text-gray-500 mb-2">Live Preview (Approximation)</h4>
+                                    <div className="relative inline-block max-w-full overflow-hidden border shadow-sm mx-auto" style={{ width: '600px', aspectRatio: '1.414' }}>
+                                        {/* Background Image: We need to get the preview URL again effectively. 
+                                            Since TemplateUploader manages its own preview state, we should probably refactor or just regenerate the URL here for the preview.
+                                            For simplicity, let's regenerate or use a helper if possible.
+                                            Ideally, TemplateUploader should lift the preview URL up, but for now duplicate logic for preview:
+                                        */}
+                                        <img
+                                            src={certificateFile ? URL.createObjectURL(certificateFile) : (initialValues?.certificateTemplate?.startsWith('http') ? initialValues.certificateTemplate : (initialValues?.certificateTemplate ? (initialValues.certificateTemplate.replace(/\\/g, '/').startsWith('/') ? initialValues.certificateTemplate.replace(/\\/g, '/') : '/' + initialValues.certificateTemplate.replace(/\\/g, '/')) : ''))}
+                                            alt="Certificate Preview"
+                                            className="w-full h-full object-contain"
+                                        />
+
+                                        {/* Name Overlay */}
+                                        <div
+                                            className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap pointer-events-none"
+                                            style={{
+                                                left: `${watch('certificateConfig.name.x')}%`,
+                                                top: `${watch('certificateConfig.name.y')}%`,
+                                                fontSize: `${Math.max(10, (watch('certificateConfig.name.fontSize') / 2))}px`, // Scale down font for preview (assuming preview width ~600 vs actual 2000 => 30% ratio)
+                                                color: watch('certificateConfig.name.color'),
+                                                fontWeight: 'bold',
+                                                fontFamily: 'sans-serif'
+                                            }}
+                                        >
+                                            [Student Name]
+                                        </div>
+
+                                        {/* Program Name Overlay */}
+                                        {watch('certificateConfig.programName.show') && (
+                                            <div
+                                                className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap pointer-events-none"
+                                                style={{
+                                                    left: `${watch('certificateConfig.programName.x')}%`,
+                                                    top: `${watch('certificateConfig.programName.y')}%`,
+                                                    fontSize: `${Math.max(10, (watch('certificateConfig.programName.fontSize') / 2))}px`,
+                                                    color: watch('certificateConfig.programName.color'),
+                                                    fontWeight: 'bold',
+                                                    fontFamily: 'sans-serif'
+                                                }}
+                                            >
+                                                [Program Title]
+                                            </div>
+                                        )}
+
+                                        {/* Reg Number Overlay */}
+                                        {watch('certificateConfig.registrationNumber.show') && (
+                                            <div
+                                                className="absolute transform -translate-x-1/2 -translate-y-1/2 whitespace-nowrap pointer-events-none"
+                                                style={{
+                                                    left: `${watch('certificateConfig.registrationNumber.x')}%`,
+                                                    top: `${watch('certificateConfig.registrationNumber.y')}%`,
+                                                    fontSize: `${Math.max(8, (watch('certificateConfig.registrationNumber.fontSize') / 2))}px`,
+                                                    color: watch('certificateConfig.registrationNumber.color'),
+                                                    fontFamily: 'sans-serif'
+                                                }}
+                                            >
+                                                [Reg. No]
+                                            </div>
+                                        )}
+
+                                        {/* QR Overlay */}
+                                        {watch('certificateConfig.qr.show') && (
+                                            <div
+                                                className="absolute border-2 border-dashed border-gray-400 bg-white/50 flex items-center justify-center text-xs text-gray-500"
+                                                style={{
+                                                    left: `${watch('certificateConfig.qr.x')}%`, // x is usually left edge? sharp uses left/top.
+                                                    top: `${watch('certificateConfig.qr.y')}%`,
+                                                    width: '45px', // Approx scaled size (150px * 0.3)
+                                                    height: '45px'
+                                                }}
+                                            >
+                                                QR
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-1">Preview scales down font size for display.</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Certificate Configuration Designer */}
+                        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
+                                <Icons.Settings size={16} /> Certificate Layout Configuration
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <Input
+                                    label="Name X Position (%)"
+                                    type="number"
+                                    {...register('certificateConfig.name.x', { valueAsNumber: true })}
+                                    defaultValue={initialValues?.certificateConfig?.name?.x || 50}
+                                />
+                                <Input
+                                    label="Name Y Position (%)"
+                                    type="number"
+                                    {...register('certificateConfig.name.y', { valueAsNumber: true })}
+                                    defaultValue={initialValues?.certificateConfig?.name?.y || 40}
+                                />
+                                <Input
+                                    label="Font Size (px)"
+                                    type="number"
+                                    {...register('certificateConfig.name.fontSize', { valueAsNumber: true })}
+                                    defaultValue={initialValues?.certificateConfig?.name?.fontSize || 60}
+                                />
+                                <div className="flex flex-col gap-1">
+                                    <label className="text-sm font-medium text-gray-700">Text Color</label>
+                                    <input
+                                        type="color"
+                                        className="h-10 w-full rounded border cursor-pointer"
+                                        {...register('certificateConfig.name.color')}
+                                        defaultValue={initialValues?.certificateConfig?.name?.color || '#000000'}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Program Name Config */}
+                            <div className="mt-4 border-t pt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="checkbox"
+                                        id="showProg"
+                                        {...register('certificateConfig.programName.show')}
+                                        defaultChecked={initialValues?.certificateConfig?.programName?.show ?? false}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <label htmlFor="showProg" className="text-sm font-medium text-gray-700">Include Program Name</label>
+                                </div>
+                                {watch('certificateConfig.programName.show') && (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+                                        <Input
+                                            label="Prog Name X (%)"
+                                            type="number"
+                                            {...register('certificateConfig.programName.x', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.programName?.x || 50}
+                                        />
+                                        <Input
+                                            label="Prog Name Y (%)"
+                                            type="number"
+                                            {...register('certificateConfig.programName.y', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.programName?.y || 55}
+                                        />
+                                        <Input
+                                            label="Font Size (px)"
+                                            type="number"
+                                            {...register('certificateConfig.programName.fontSize', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.programName?.fontSize || 40}
+                                        />
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm font-medium text-gray-700">Color</label>
+                                            <input
+                                                type="color"
+                                                className="h-10 w-full rounded border cursor-pointer"
+                                                {...register('certificateConfig.programName.color')}
+                                                defaultValue={initialValues?.certificateConfig?.programName?.color || '#000000'}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Registration Number Config */}
+                            <div className="mt-4 border-t pt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="checkbox"
+                                        id="showReg"
+                                        {...register('certificateConfig.registrationNumber.show')}
+                                        defaultChecked={initialValues?.certificateConfig?.registrationNumber?.show ?? false}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <label htmlFor="showReg" className="text-sm font-medium text-gray-700">Include Registration Number</label>
+                                </div>
+                                {watch('certificateConfig.registrationNumber.show') && (
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-2">
+                                        <Input
+                                            label="Reg No X (%)"
+                                            type="number"
+                                            {...register('certificateConfig.registrationNumber.x', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.registrationNumber?.x || 50}
+                                        />
+                                        <Input
+                                            label="Reg No Y (%)"
+                                            type="number"
+                                            {...register('certificateConfig.registrationNumber.y', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.registrationNumber?.y || 60}
+                                        />
+                                        <Input
+                                            label="Font Size (px)"
+                                            type="number"
+                                            {...register('certificateConfig.registrationNumber.fontSize', { valueAsNumber: true })}
+                                            defaultValue={initialValues?.certificateConfig?.registrationNumber?.fontSize || 20}
+                                        />
+                                        <div className="flex flex-col gap-1">
+                                            <label className="text-sm font-medium text-gray-700">Color</label>
+                                            <input
+                                                type="color"
+                                                className="h-10 w-full rounded border cursor-pointer"
+                                                {...register('certificateConfig.registrationNumber.color')}
+                                                defaultValue={initialValues?.certificateConfig?.registrationNumber?.color || '#000000'}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-4 border-t pt-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <input
+                                        type="checkbox"
+                                        id="showQr"
+                                        {...register('certificateConfig.qr.show')}
+                                        defaultChecked={initialValues?.certificateConfig?.qr?.show ?? true}
+                                        className="rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <label htmlFor="showQr" className="text-sm font-medium text-gray-700">Include Verification QR Code</label>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Input
+                                        label="QR X Position (%)"
+                                        type="number"
+                                        {...register('certificateConfig.qr.x', { valueAsNumber: true })}
+                                        defaultValue={initialValues?.certificateConfig?.qr?.x || 10}
+                                    />
+                                    <Input
+                                        label="QR Y Position (%)"
+                                        type="number"
+                                        {...register('certificateConfig.qr.y', { valueAsNumber: true })}
+                                        defaultValue={initialValues?.certificateConfig?.qr?.y || 75}
+                                    />
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                                * Adjust percentages to position elements relative to the total image size.
+                            </p>
                         </div>
                     </div>
-                )}
+                )
+                }
+
+                {/* Step 4: Communication */}
+                {
+                    currentStep === 3 && (
+                        <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
+                            <Input
+                                label="WhatsApp Group Link"
+                                {...register('whatsappGroupLink')}
+                                placeholder="https://chat.whatsapp.com/..."
+                            />
+                            <TextArea
+                                label="Welcome WhatsApp Message"
+                                {...register('whatsappMessage')}
+                                placeholder="Hello {{name}}, welcome..."
+                                rows={3}
+                            />
+                            <div className="border-t border-gray-100 my-4 pt-4">
+                                <h4 className="font-medium text-secondary mb-3">Email Template</h4>
+                                <Input
+                                    label="Email Subject"
+                                    {...register('emailSubject')}
+                                />
+                                <TextArea
+                                    label="Email Body"
+                                    {...register('emailBody')}
+                                    placeholder="Dear {{name}}..."
+                                    rows={4}
+                                    className="mt-4"
+                                />
+                            </div>
+                        </div>
+                    )
+                }
 
                 {/* Navigation Actions */}
                 <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-gray-100">
@@ -548,7 +792,7 @@ export default function ProgramForm({ defaultValues: initialValues, onSubmit: pa
                     )}
                 </div>
 
-            </form>
-        </div>
+            </form >
+        </div >
     );
 }

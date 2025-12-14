@@ -31,7 +31,8 @@ import {
     BarChart,
     Dot,
     User, // Added
-    LayoutDashboard // Added
+    LayoutDashboard, // Added
+    Settings, // Added for ProgramForm
 } from 'lucide-react';
 
 export const Icons = {
@@ -39,6 +40,7 @@ export const Icons = {
     Rocket: (props) => <Rocket className="text-primary" {...props} />,
     ShieldCheck: (props) => <ShieldCheck className="text-secondary" {...props} />,
     Home: (props) => <Home className="text-secondary" {...props} />,
+    BookOpen: (props) => <BookOpen className="text-secondary" {...props} />, // Added for generic usage
     Courses: (props) => <BookOpen className="text-secondary" {...props} />,
     Internships: (props) => <Briefcase className="text-secondary" {...props} />,
     Workshops: (props) => <Users className="text-secondary" {...props} />,
@@ -75,10 +77,13 @@ export const Icons = {
     Info: (props) => <Info className="text-secondary" {...props} />,
 
     // Feature Specific
+    HelpCircle: (props) => <AlertCircle className="text-secondary" {...props} />, // Fallback to AlertCircle
     Duration: (props) => <Clock className="text-primary" {...props} />,
     Date: (props) => <Calendar className="text-primary" {...props} />,
     Fee: (props) => <CreditCard className="text-primary" {...props} />,
     Certificate: (props) => <Award className="text-primary" {...props} />,
+    Award: (props) => <Award className="text-secondary" {...props} />, // Added specifically for direct usage
+    Settings: (props) => <Settings className="text-secondary" {...props} />, // Added for ProgramForm
     Quiz: (props) => <Rocket className="text-primary" {...props} />,
     Upload: (props) => <Upload className="text-primary" {...props} />,
     User: (props) => <User className="text-primary" {...props} />, // Added

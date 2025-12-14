@@ -12,7 +12,13 @@ export default function DashboardQuizzes() {
         const fetchQuizzes = async () => {
             try {
                 const data = await getMyQuizzes();
-                setQuizzes(data);
+                console.log("Fetched Quizzes:", data);
+                if (Array.isArray(data)) {
+                    setQuizzes(data);
+                } else {
+                    console.error("Quizzes data is not an array:", data);
+                    setQuizzes([]);
+                }
             } catch (error) {
                 console.error("Failed to load quizzes", error);
             } finally {

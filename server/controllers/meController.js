@@ -2,6 +2,8 @@ const asyncHandler = require('express-async-handler');
 const Enrollment = require('../models/Enrollment');
 const Program = require('../models/Program');
 const Certificate = require('../models/Certificate');
+const Quiz = require('../models/Quiz');
+const FeedbackTemplate = require('../models/FeedbackTemplate');
 
 // @desc    Get user's enrollments
 // @route   GET /api/me/enrollments
@@ -20,31 +22,64 @@ const getMyEnrollments = asyncHandler(async (req, res) => {
 // @access  Private
 const getDashboardOverview = asyncHandler(async (req, res) => {
     const userId = req.user._id;
+    const user = req.user;
 
-    // 1. Total Enrolled
-    const totalEnrolled = await Enrollment.countDocuments({ user: userId });
+    // 1. Fetch User's Enrollments (with Program details)
+    const enrollments = await Enrollment.find({ user: userId })
+        .populate('program', 'title type validUntil')
+        .sort('-enrolledAt');
 
-    // 2. Completed Programs
-    const completedPrograms = await Enrollment.countDocuments({ user: userId, status: 'completed' });
+    // 2. Aggregate Data per Enrollment
+    const programsData = await Promise.all(enrollments.map(async (enrollment) => {
+        const program = enrollment.program;
 
-    // 3. Active
-    const activePrograms = await Enrollment.countDocuments({ user: userId, status: 'active' });
+        if (!program) return null; // Handle edge case where program might be deleted
 
-    // 4. Certificates
+        // Fetch Active Quizzes for this Program
+        const quizzes = await Quiz.find({
+            program: program._id,
+            status: 'Published'
+        }).select('title type passingScore startTime endTime questions.length');
+
+        // Fetch Active Feedbacks for this Program
+        const feedbacks = await FeedbackTemplate.find({
+            programId: program._id,
+            status: 'Published'
+        }).select('title description type endAt');
+
+        return {
+            programId: program._id,
+            title: program.title,
+            type: program.type,
+            enrollmentStatus: enrollment.status,
+            validUntil: enrollment.validUntil || program.validUntil || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // Default 1 year if missing
+            quizzes: quizzes,
+            feedbacks: feedbacks
+        };
+    }));
+
+    // Filter out nulls
+    const validPrograms = programsData.filter(p => p !== null);
+
+    // Stats
+    const totalEnrolled = enrollments.length;
+    const completedPrograms = enrollments.filter(e => e.status === 'completed').length;
+    const activePrograms = enrollments.filter(e => e.status === 'active').length;
     const certificates = await Certificate.countDocuments({ user: userId });
 
-    // 5. Recent Enrollments
-    const recentEnrollments = await Enrollment.find({ user: userId })
-        .sort('-enrolledAt')
-        .limit(3)
-        .populate('program', 'title type');
-
     res.json({
-        totalEnrolled,
-        completedPrograms,
-        activePrograms,
-        certificates,
-        recentEnrollments
+        user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email
+        },
+        programs: validPrograms,
+        stats: {
+            totalEnrolled,
+            completedPrograms,
+            activePrograms,
+            certificates
+        }
     });
 });
 

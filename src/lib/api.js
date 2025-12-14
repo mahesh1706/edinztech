@@ -260,4 +260,10 @@ export const exportFeedback = async (id) => {
     return response;
 };
 
+// Certificates
+export const publishCertificates = async (programId) => {
+    const { data } = await api.post(`/admin/programs/${programId}/publish-certificates`);
+    return data;
+};
+
 export default api;

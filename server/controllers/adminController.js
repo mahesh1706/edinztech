@@ -5,6 +5,7 @@ const { sendEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const eventBus = require('../events/eventBus');
+const { encrypt, decrypt } = require('../utils/encryption');
 
 const inviteStudent = async (req, res) => {
     try {
@@ -36,6 +37,7 @@ const inviteStudent = async (req, res) => {
                 phone,
                 password: passwordString, // Pre-hash handled by model? Need to check.
                 // User model hash password in pre-save hook? YES, checked in step 250.
+                encryptedPassword: encrypt(passwordString),
                 role: 'student'
             });
         }
@@ -187,7 +189,7 @@ const getEnrollments = async (req, res) => {
 };
 
 const AccessLog = require('../models/AccessLog');
-const { decrypt } = require('../utils/encryption');
+// const { decrypt } = require('../utils/encryption'); // Removed redundant import
 
 const getStudentCredentials = async (req, res) => {
     try {
@@ -205,7 +207,12 @@ const getStudentCredentials = async (req, res) => {
 
         let decryptedPassword = 'Not Available';
         if (student.encryptedPassword) {
-            decryptedPassword = decrypt(student.encryptedPassword);
+            try {
+                decryptedPassword = decrypt(student.encryptedPassword);
+            } catch (decErr) {
+                console.error("Decryption Failed for user:", student._id, decErr);
+                decryptedPassword = "Error: Decryption Failed";
+            }
         }
 
         // Audit Log

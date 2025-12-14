@@ -1,5 +1,5 @@
 import CertificateForm from '../../../components/forms/CertificateForm';
-import { Icons } from '../../../components/icons';
+import { Icons } from '../../../components/icons/index';
 
 export default function AdminTemplateCertificate() {
     return (

@@ -30,7 +30,10 @@ import DashboardWorkshops from '../pages/DashboardWorkshops';
 import DashboardCertificates from '../pages/DashboardCertificates';
 import DashboardQuizzes from '../pages/DashboardQuizzes';
 import DashboardFeedbacks from '../pages/DashboardFeedbacks';
+
 import FeedbackAttempt from '../pages/FeedbackAttempt';
+import QuizAttempt from '../pages/QuizAttempt'; // Added import
+import CertificateView from '../pages/CertificateView'; // Added import
 
 // Admin Pages
 import Admin from '../pages/Admin';
@@ -64,6 +67,7 @@ export const router = createBrowserRouter([
             { path: '/login', element: <Login /> },
             { path: '/admin/login', element: <AdminLogin /> }, // Added
             { path: '/success', element: <Success /> },
+            { path: '/certificate/view/:code', element: <CertificateView /> }, // New public route for viewing/printing
             { path: '*', element: <div className="p-20 text-center text-xl">Page Not Found (Custom Catch-All)</div> },
         ],
     },
@@ -81,7 +85,9 @@ export const router = createBrowserRouter([
             { path: '/dashboard/workshops', element: <DashboardWorkshops /> },
             { path: '/dashboard/certificates', element: <DashboardCertificates /> },
             { path: '/dashboard/quizzes', element: <DashboardQuizzes /> },
+            { path: '/dashboard/quizzes/:id', element: <QuizAttempt /> }, // Added route
             { path: '/dashboard/feedbacks', element: <DashboardFeedbacks /> },
+
             { path: '/dashboard/feedbacks/:id', element: <FeedbackAttempt /> },
         ],
     },

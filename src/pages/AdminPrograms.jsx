@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Icons } from '../components/icons';
+import { Icons } from '../components/icons/index';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import api from '../lib/api';
+import api, { publishCertificates } from '../lib/api';
 import AdminTable from '../components/AdminTable'; // Keep AdminTable import as it's used in JSX
 
 export default function AdminPrograms() {
@@ -37,6 +37,18 @@ export default function AdminPrograms() {
             setError("Failed to load programs");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handlePublishCertificate = async (programId, title) => {
+        if (!window.confirm(`Are you sure you want to publish certificates for "${title}"? This will issue certificates to all enrolled students.`)) return;
+
+        try {
+            const res = await publishCertificates(programId);
+            alert(res.message);
+        } catch (err) {
+            console.error("Failed to publish certificates", err);
+            alert(err.response?.data?.message || 'Failed to publish certificates');
         }
     };
 
@@ -143,6 +155,13 @@ export default function AdminPrograms() {
                                     <button className="p-1 text-blue-600 hover:bg-blue-50 rounded"><Icons.Edit size={18} /></button>
                                 </Link>
                                 <button className="p-1 text-red-500 hover:bg-red-50 rounded"><Icons.Trash size={18} /></button>
+                                <button
+                                    onClick={() => handlePublishCertificate(program._id || program.id, program.title)}
+                                    className="p-1 text-yellow-600 hover:bg-yellow-50 rounded"
+                                    title="Publish Certificates"
+                                >
+                                    <Icons.Award size={18} />
+                                </button>
                             </div>
                         </td>
                     </tr>

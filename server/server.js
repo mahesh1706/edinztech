@@ -1,5 +1,7 @@
 const dotenv = require('dotenv');
-dotenv.config();
+const path = require('path');
+// Explicitly load .env from the server directory to avoid CWD issues
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = require('./app');
 

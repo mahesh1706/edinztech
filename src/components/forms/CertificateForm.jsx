@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Input } from '../ui/Input';
 import Button from '../ui/Button';
-import { Icons } from '../icons';
+import { Icons } from '../icons/index';
 
 const templateSchema = z.object({
     name: z.string().min(3, 'Template name is required'),
