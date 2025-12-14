@@ -28,7 +28,7 @@ import {
     UserPlus,
     MessageSquare,
     BarChart,
-    Dot
+    Settings,
 } from 'lucide-react';
 
 export const Icons = {
@@ -54,6 +54,7 @@ export const Icons = {
     Edit: (props) => <Edit className="text-blue-600" {...props} />,
     Trash: (props) => <Trash2 className="text-danger" {...props} />,
     Dot: (props) => <Dot {...props} />,
+    Settings: (props) => <Settings className="text-secondary" {...props} />,
 
     // Communication
     Mail: (props) => <Mail className="text-secondary" {...props} />,

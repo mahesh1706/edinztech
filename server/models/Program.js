@@ -29,6 +29,43 @@ const programSchema = mongoose.Schema({
     offerLetterTemplate: { type: String },
     certificateTemplate: { type: String },
 
+    // Certificate Configuration (For Auto-Generation)
+    certificateConfig: {
+        name: {
+            x: { type: Number, default: 50 },
+            y: { type: Number, default: 40 },
+            fontSize: { type: Number, default: 60 },
+            color: { type: String, default: '#000000' }
+        },
+        registrationNumber: {
+            show: { type: Boolean, default: false },
+            x: { type: Number, default: 50 },
+            y: { type: Number, default: 60 },
+            fontSize: { type: Number, default: 20 },
+            color: { type: String, default: '#000000' }
+        },
+        programName: {
+            show: { type: Boolean, default: false },
+            x: { type: Number, default: 50 },
+            y: { type: Number, default: 55 },
+            fontSize: { type: Number, default: 40 },
+            color: { type: String, default: '#000000' }
+        },
+        date: {
+            show: { type: Boolean, default: true },
+            x: { type: Number, default: 80 },
+            y: { type: Number, default: 80 },
+            fontSize: { type: Number, default: 20 },
+            color: { type: String, default: '#555555' }
+        },
+        qr: {
+            show: { type: Boolean, default: true },
+            x: { type: Number, default: 10 },
+            y: { type: Number, default: 75 },
+            size: { type: Number, default: 150 }
+        }
+    },
+
     // Communication
     whatsappGroupLink: { type: String },
     whatsappMessage: { type: String },
