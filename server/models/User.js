@@ -45,7 +45,15 @@ const userSchema = mongoose.Schema({
     encryptedPassword: {
         type: String,
         select: false // Strict security: never return by default
-    }
+    },
+    // Extended Profile Fields
+    year: String,
+    department: String,
+    registerNumber: String,
+    institutionName: String,
+    state: String,
+    city: String,
+    pincode: String
 }, {
     timestamps: true
 });

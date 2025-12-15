@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
-import { getAllQuizzes, deleteQuiz } from '../lib/api';
+import { getAllQuizzes, deleteQuiz, publishQuiz, unpublishQuiz } from '../lib/api';
 
 export default function AdminQuizzes() {
     const [quizzes, setQuizzes] = useState([]);
@@ -43,10 +43,30 @@ export default function AdminQuizzes() {
             console.error("Failed to delete quiz", error);
             alert("Failed to delete quiz");
         }
+    }; // Close handleDelete properly
+
+    const handleTogglePublish = async (quiz) => {
+        try {
+            if (quiz.status === 'Published') { // Assuming 'Published' is the status string
+                if (!window.confirm("Unpublish this quiz? Students won't be able to see it.")) return;
+                await unpublishQuiz(quiz._id);
+            } else {
+                await publishQuiz(quiz._id);
+            }
+            // Update local state
+            setQuizzes(quizzes.map(q => q._id === quiz._id
+                ? { ...q, status: q.status === 'Published' ? 'Draft' : 'Published' }
+                : q
+            ));
+        } catch (error) {
+            console.error("Failed to toggle publish status", error);
+            alert("Failed to update quiz status");
+        }
     };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
+            {/* ... existing header ... */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                     <Icons.Quiz className="text-secondary bg-orange-50 p-1.5 rounded-lg w-10 h-10" />
@@ -103,9 +123,22 @@ export default function AdminQuizzes() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            {/* Currently no specific Edit page for generic quiz edits, 
-                                                could link to program edit or a dedicated quiz edit page.
-                                                For now, reusing the Delete action. */}
+                                            {/* Publish Toggle */}
+                                            <button
+                                                onClick={() => handleTogglePublish(quiz)}
+                                                className={`p-2 transition-colors ${quiz.status === 'Published' ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-green-600'}`}
+                                                title={quiz.status === 'Published' ? "Unpublish" : "Publish"}
+                                            >
+                                                <Icons.Rocket size={18} />
+                                            </button>
+
+                                            <Link
+                                                to={`/admin/quizzes/${quiz._id}/reports`}
+                                                className="p-2 text-gray-400 hover:text-primary transition-colors"
+                                                title="View Reports"
+                                            >
+                                                <Icons.FileText size={18} />
+                                            </Link>
                                             <button
                                                 onClick={() => handleDelete(quiz._id)}
                                                 className="p-2 text-gray-400 hover:text-danger transition-colors"

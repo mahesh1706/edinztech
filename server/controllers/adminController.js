@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Enrollment = require('../models/Enrollment');
 const Program = require('../models/Program');
+const Payment = require('../models/Payment');
 const { sendEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
@@ -9,7 +10,7 @@ const { encrypt, decrypt } = require('../utils/encryption');
 
 const inviteStudent = async (req, res) => {
     try {
-        const { email, phone, programId } = req.body;
+        const { email, phone, programId, name, year, department, registerNumber, institutionName, state, city, pincode } = req.body;
 
         if (!email || !programId) {
             return res.status(400).json({ message: 'Email and Program ID are required' });
@@ -29,29 +30,37 @@ const inviteStudent = async (req, res) => {
         if (!user) {
             isNewUser = true;
             passwordString = crypto.randomBytes(4).toString('hex'); // 8 char hex
-            const username = email.split('@')[0] + Math.floor(1000 + Math.random() * 9000);
+            const username = name || (email.split('@')[0] + Math.floor(1000 + Math.random() * 9000));
 
             user = await User.create({
                 name: username,
                 email,
                 phone,
+                year,
+                department,
+                registerNumber,
+                institutionName,
+                state,
+                city,
+                pincode,
                 password: passwordString, // Pre-hash handled by model? Need to check.
                 // User model hash password in pre-save hook? YES, checked in step 250.
                 encryptedPassword: encrypt(passwordString),
                 role: 'student'
             });
+            console.log('[DEBUG] Invite Password:', passwordString);
         }
 
         // 3. Create Enrollment
         // Check if already enrolled
-        const existingEnrollment = await Enrollment.findOne({ userId: user._id, programId });
+        const existingEnrollment = await Enrollment.findOne({ user: user._id, program: programId });
         if (existingEnrollment) {
             return res.status(400).json({ message: 'User is already enrolled in this program' });
         }
 
         const enrollment = await Enrollment.create({
-            userId: user._id,
-            programId,
+            user: user._id,
+            program: programId,
             status: 'active', // Direct active for invites
             enrolledAt: Date.now()
         });
@@ -123,7 +132,7 @@ const getEnrollments = async (req, res) => {
         // Fetch Enrollments with populated data
         // We need deep population: user, program, and payment info
         const enrollments = await Enrollment.find(query)
-            .populate('user', 'name email phone userCode')
+            .populate('user', 'name email phone userCode year department registerNumber institutionName state city pincode')
             .populate('program', 'title type fee')
             .populate('paymentId', 'amount status')
             .sort({ createdAt: -1 });
@@ -173,6 +182,15 @@ const getEnrollments = async (req, res) => {
             studentName: e.user?.name || 'Unknown',
             email: e.user?.email || 'Unknown',
             phone: e.user?.phone || 'N/A',
+            // Extended Profile Fields
+            year: e.user?.year || '',
+            department: e.user?.department || '',
+            registerNumber: e.user?.registerNumber || '',
+            institutionName: e.user?.institutionName || '',
+            state: e.user?.state || '',
+            city: e.user?.city || '',
+            pincode: e.user?.pincode || '',
+
             programName: e.program?.title || 'Unknown',
             programType: e.programType || e.program?.type || 'N/A',
             amount: e.paymentId?.amount ? `₹${e.paymentId.amount}` : (e.program?.fee ? `₹${e.program.fee}` : 'Free'),
@@ -281,9 +299,194 @@ const resendCredentials = async (req, res) => {
     }
 };
 
+// @desc    Export Enrollments to CSV
+// @route   GET /api/admin/enrollments/export
+// @access  Private/Admin
+const exportEnrollments = async (req, res) => {
+    try {
+        const { type, programId, search } = req.query;
+        let query = {};
+
+        if (type && type !== 'All') query.programType = type;
+        if (programId) query.programId = programId;
+
+        // Fetch Enrollments
+        const enrollments = await Enrollment.find(query)
+            .populate('user', 'name email phone userCode year department registerNumber institutionName state city pincode')
+            .populate('program', 'title type fee')
+            .populate('paymentId', 'amount status')
+            .sort({ createdAt: -1 });
+
+        // Filter by search if needed (client side filter in getEnrollments, replicating here)
+        let results = enrollments;
+        if (search) {
+            const searchLower = search.toLowerCase();
+            results = enrollments.filter(e =>
+                (e.user?.name?.toLowerCase().includes(searchLower)) ||
+                (e.user?.email?.toLowerCase().includes(searchLower)) ||
+                (e.program?.title?.toLowerCase().includes(searchLower))
+            );
+        }
+
+        // Generate CSV
+        let csv = 'Student Name,Email,Phone,Institution,Department,Year,Register No,City,State,Pincode,User Code,Program,Type,Amount,Status,Enrolled Date\n';
+
+        results.forEach(e => {
+            const row = [
+                `"${e.user?.name || 'Unknown'}"`,
+                `"${e.user?.email || 'Unknown'}"`,
+                `"${e.user?.phone || 'N/A'}"`,
+                `"${e.user?.institutionName || ''}"`,
+                `"${e.user?.department || ''}"`,
+                `"${e.user?.year || ''}"`,
+                `"${e.user?.registerNumber || ''}"`,
+                `"${e.user?.city || ''}"`,
+                `"${e.user?.state || ''}"`,
+                `"${e.user?.pincode || ''}"`,
+                `"${e.userCode || e.user?.userCode || 'N/A'}"`,
+                `"${e.program?.title || 'Unknown'}"`,
+                e.program?.type || 'N/A',
+                e.paymentId?.amount || e.program?.fee || '0',
+                e.paymentId?.status || 'Active',
+                e.enrolledAt ? new Date(e.enrolledAt).toISOString().split('T')[0] : ''
+            ];
+            csv += row.join(',') + '\n';
+        });
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment('enrollments.csv');
+        res.send(csv);
+
+    } catch (error) {
+        console.error("Export Enrollments Error:", error);
+        res.status(500).json({ message: 'Failed to export enrollments' });
+    }
+};
+
+
+
+const getDashboardStats = async (req, res) => {
+    try {
+        console.log('[DEBUG] getDashboardStats called');
+        // 1. Total Students
+        const totalStudents = await User.countDocuments({ role: 'student' });
+        console.log(`[DEBUG] Students: ${totalStudents}`);
+
+        // 2. Active Programs
+        const activePrograms = await Program.countDocuments({ isArchived: false });
+        console.log(`[DEBUG] Programs: ${activePrograms}`);
+
+        // 3. Revenue Breakdown
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        const revenueStats = await Payment.aggregate([
+            { $match: { status: 'captured' } },
+            {
+                $group: {
+                    _id: null,
+                    total: { $sum: '$amount' },
+                    today: {
+                        $sum: {
+                            $cond: [{ $gte: ['$createdAt', startOfToday] }, '$amount', 0]
+                        }
+                    },
+                    week: {
+                        $sum: {
+                            $cond: [{ $gte: ['$createdAt', startOfWeek] }, '$amount', 0]
+                        }
+                    },
+                    month: {
+                        $sum: {
+                            $cond: [{ $gte: ['$createdAt', startOfMonth] }, '$amount', 0]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const revenueData = revenueStats.length > 0 ? revenueStats[0] : { total: 0, today: 0, week: 0, month: 0 };
+        console.log(`[DEBUG] Revenue:`, revenueData);
+
+        // 4. Pending Verifications
+        const pendingVerifications = 0;
+
+        res.json({
+            totalStudents,
+            activePrograms,
+            revenue: revenueData,
+            pendingVerifications
+        });
+    } catch (error) {
+        console.error("Dashboard Stats Error:", error);
+        res.status(500).json({ message: 'Failed to fetch dashboard stats' });
+    }
+};
+
+const updateStudent = async (req, res) => {
+    try {
+        const studentId = req.params.id;
+        const { name, email, phone, year, department, registerNumber, institutionName, state, city, pincode } = req.body;
+
+        const user = await User.findById(studentId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+
+        // Check if email is being changed and if it's already taken
+        if (email && email !== user.email) {
+            const emailExists = await User.findOne({ email });
+            if (emailExists) {
+                return res.status(400).json({ message: 'Email already in use' });
+            }
+            user.email = email;
+        }
+
+        if (name) user.name = name;
+        if (phone) user.phone = phone;
+        if (year) user.year = year;
+        if (department) user.department = department;
+        if (registerNumber) user.registerNumber = registerNumber;
+        if (institutionName) user.institutionName = institutionName;
+        if (state) user.state = state;
+        if (city) user.city = city;
+        if (pincode) user.pincode = pincode;
+
+        await user.save();
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone,
+            role: user.role,
+            year: user.year,
+            department: user.department,
+            registerNumber: user.registerNumber,
+            institutionName: user.institutionName,
+            state: user.state,
+            city: user.city,
+            pincode: user.pincode
+        });
+    } catch (error) {
+        console.error("Update Student Error:", error);
+        res.status(500).json({ message: 'Failed to update student details' });
+    }
+};
+
 module.exports = {
     inviteStudent,
     getEnrollments,
     getStudentCredentials,
-    resendCredentials
+    resendCredentials,
+    exportEnrollments,
+    getDashboardStats,
+    updateStudent
 };

@@ -9,9 +9,17 @@ import Button from '../ui/Button';
 import { Icons } from '../icons';
 
 const inviteSchema = z.object({
+    name: z.string().optional(),
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
     phone: z.string().min(10, 'Mobile number must be at least 10 digits'),
     programId: z.string().min(1, 'Please select a program'),
+    year: z.string().optional(),
+    department: z.string().optional(),
+    institutionName: z.string().optional(),
+    registerNumber: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    pincode: z.string().optional(),
 });
 
 export default function InviteForm() {
@@ -90,7 +98,15 @@ export default function InviteForm() {
             )}
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+
+                {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Input
+                        label="Full Name"
+                        placeholder="John Doe"
+                        {...register('name')}
+                        error={errors.name?.message}
+                    />
                     <Input
                         label="Email Address"
                         placeholder="student@example.com"
@@ -103,6 +119,51 @@ export default function InviteForm() {
                         placeholder="1234567890"
                         {...register('phone')}
                         error={errors.phone?.message}
+                    />
+                </div>
+
+                {/* Academic Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <h3 className="col-span-full text-sm font-semibold text-gray-700 mb-2">Academic Details</h3>
+                    <Input
+                        label="Institution Name"
+                        placeholder="College/University"
+                        {...register('institutionName')}
+                    />
+                    <Input
+                        label="Register/Roll No"
+                        placeholder="123456"
+                        {...register('registerNumber')}
+                    />
+                    <Input
+                        label="Department"
+                        placeholder="Ex: CSE"
+                        {...register('department')}
+                    />
+                    <Input
+                        label="Year"
+                        placeholder="Ex: 3rd Year"
+                        {...register('year')}
+                    />
+                </div>
+
+                {/* Address Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <h3 className="col-span-full text-sm font-semibold text-gray-700 mb-2">Address Info</h3>
+                    <Input
+                        label="City"
+                        placeholder="City"
+                        {...register('city')}
+                    />
+                    <Input
+                        label="State"
+                        placeholder="State"
+                        {...register('state')}
+                    />
+                    <Input
+                        label="Pincode"
+                        placeholder="560001"
+                        {...register('pincode')}
                     />
                 </div>
 

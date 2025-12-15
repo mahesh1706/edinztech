@@ -87,6 +87,13 @@ export const adminInviteStudent = async (inviteData) => {
     return data;
 };
 
+export const exportPrograms = async () => {
+    const response = await api.get('/programs/export', {
+        responseType: 'blob',
+    });
+    return response;
+};
+
 // Quiz APIs
 export const createQuiz = async (quizData) => {
     const { data } = await api.post('/quiz', quizData);
@@ -130,6 +137,25 @@ export const attemptQuiz = async (id, answers) => {
 
 export const getStudentQuizzes = async () => {
     const { data } = await api.get('/quiz/my-quizzes');
+    return data;
+};
+
+export const uploadQuizImage = async (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const { data } = await api.post('/quiz/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return data;
+};
+
+export const getQuizReports = async (id) => {
+    const { data } = await api.get(`/quiz/${id}/reports`);
+    return data;
+};
+
+export const getQuizAttempt = async (id) => {
+    const { data } = await api.get(`/quiz/attempt/${id}`);
     return data;
 };
 
@@ -221,6 +247,16 @@ export const deleteFeedback = async (id) => {
     return data;
 };
 
+export const getAdminDashboardStats = async () => {
+    const { data } = await api.get('/admin/dashboard');
+    return data;
+};
+
+export const updateStudentDetails = async (studentId, updates) => {
+    const { data } = await api.put(`/admin/students/${studentId}`, updates);
+    return data;
+};
+
 // Duplicate removed
 export const getMyFeedbacksOld = async () => {
     // Deprecated
@@ -231,6 +267,14 @@ export const getAdminEnrollments = async (filters) => {
     const params = new URLSearchParams(filters).toString();
     const res = await api.get(`/admin/enrollments?${params}`);
     return res.data;
+};
+
+export const exportEnrollments = async (filters) => {
+    const params = new URLSearchParams(filters).toString();
+    const response = await api.get(`/admin/enrollments/export?${params}`, {
+        responseType: 'blob',
+    });
+    return response;
 };
 
 export const getStudentCredentials = async (studentId, adminPassword) => {
@@ -258,6 +302,22 @@ export const exportFeedback = async (id) => {
         responseType: 'blob', // Important for file download
     });
     return response;
+};
+
+// Default Feedback APIs
+export const toggleProgramFeedback = async (id) => {
+    const { data } = await api.patch(`/programs/${id}/toggle-feedback`);
+    return data;
+};
+
+export const getPendingDefaultFeedbacks = async () => {
+    const { data } = await api.get('/feedback/me/default-pending');
+    return data;
+};
+
+export const submitDefaultFeedback = async (feedbackData) => {
+    const { data } = await api.post('/feedback/me/default', feedbackData);
+    return data;
 };
 
 // Certificates

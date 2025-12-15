@@ -119,25 +119,46 @@ export default function QuizAttempt() {
 
             <Card className="p-8 min-h-[400px] flex flex-col justify-between">
                 <div>
-                    <h2 className="text-xl font-medium text-gray-900 mb-6">
-                        {question.question}
-                    </h2>
+                    <div className="mb-6">
+                        {question.image && (
+                            <div className="mb-4">
+                                <img src={question.image} alt="Question Reference" className="max-h-64 rounded-lg border border-gray-200" />
+                            </div>
+                        )}
+                        <h2 className="text-xl font-medium text-gray-900 leading-relaxed">
+                            {question.question}
+                            <span className="ml-2 text-sm font-normal text-gray-500">
+                                ({question.marks || 1} Marks)
+                            </span>
+                        </h2>
+                    </div>
 
                     <div className="space-y-3">
-                        {question.options.map((opt, idx) => (
-                            <button
-                                key={idx}
-                                onClick={() => handleOptionSelect(idx)}
-                                className={`w-full text-left p-4 rounded-lg border-2 transition-all
-                                    ${answers[currentQuestion] === idx
-                                        ? 'border-primary bg-primary/5 text-primary font-medium shadow-sm'
-                                        : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
-                                    }`}
-                            >
-                                <span className="inline-block w-8 font-bold text-gray-400">{String.fromCharCode(65 + idx)}.</span>
-                                {opt}
-                            </button>
-                        ))}
+                        {question.type === 'text' ? (
+                            <textarea
+                                className="w-full p-4 border rounded-lg focus:ring-2 focus:ring-primary/20 outline-none min-h-[150px]"
+                                placeholder="Type your answer here..."
+                                value={answers[currentQuestion] || ''}
+                                onChange={(e) => setAnswers(prev => ({ ...prev, [currentQuestion]: e.target.value }))}
+                            />
+                        ) : (
+                            question.options?.map((opt, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleOptionSelect(idx)}
+                                    className={`w-full text-left p-4 rounded-lg border-2 transition-all flex items-center
+                                        ${answers[currentQuestion] === idx
+                                            ? 'border-primary bg-primary/5 text-primary font-medium shadow-sm'
+                                            : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-500 font-bold mr-3 text-sm group-hover:bg-white">
+                                        {String.fromCharCode(65 + idx)}
+                                    </span>
+                                    {opt}
+                                </button>
+                            ))
+                        )}
                     </div>
                 </div>
 

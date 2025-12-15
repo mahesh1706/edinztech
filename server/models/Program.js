@@ -72,7 +72,8 @@ const programSchema = mongoose.Schema({
     emailSubject: { type: String },
     emailBody: { type: String },
 
-    isArchived: { type: Boolean, default: false }
+    isArchived: { type: Boolean, default: false },
+    isFeedbackEnabled: { type: Boolean, default: false } // Default Feedback Form Toggle
 }, {
     timestamps: true
 });

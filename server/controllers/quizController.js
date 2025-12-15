@@ -55,8 +55,8 @@ const getAllQuizzes = asyncHandler(async (req, res) => {
 const getStudentQuizzes = asyncHandler(async (req, res) => {
     // 1. Find user enrollments
     const Enrollment = require('../models/Enrollment');
-    const enrollments = await Enrollment.find({ userId: req.user._id, status: 'active' });
-    const programIds = enrollments.map(e => e.programId);
+    const enrollments = await Enrollment.find({ user: req.user._id, status: 'active' });
+    const programIds = enrollments.map(e => e.program);
 
     // 2. Find published quizzes for these programs
     const quizzes = await Quiz.find({
@@ -203,6 +203,50 @@ const attemptQuiz = asyncHandler(async (req, res) => {
     });
 });
 
+const uploadQuizImage = asyncHandler(async (req, res) => {
+    if (!req.file) {
+        res.status(400);
+        throw new Error('No image file uploaded');
+    }
+    // Return the path relative to the server or a full URL
+    // Assuming 'uploads' is served statically as /uploads
+    const imagePath = `/uploads/${req.file.filename}`;
+    res.json({ url: imagePath });
+});
+
+// @desc    Get Quiz Reports (Admin)
+// @route   GET /api/admin/quiz/:id/reports
+// @access  Admin
+const getQuizReports = asyncHandler(async (req, res) => {
+    const quizId = req.params.id;
+    const attempts = await QuizAttempt.find({ quiz: quizId })
+        .populate('user', 'name email userCode')
+        .sort({ attemptedAt: -1 });
+
+    res.json(attempts);
+});
+
+// @desc    Get Single Quiz Attempt (Admin/Student?)
+// @route   GET /api/quiz/attempt/:id
+// @access  Private
+const getQuizAttempt = asyncHandler(async (req, res) => {
+    const attempt = await QuizAttempt.findById(req.params.id)
+        .populate('user', 'name email userCode')
+        .populate('quiz', 'title questions'); // Need quiz questions for context
+
+    if (!attempt) {
+        res.status(404);
+        throw new Error('Attempt not found');
+    }
+    // Access check (Admin or Own attempt)
+    if (req.user.role !== 'admin' && attempt.user._id.toString() !== req.user._id.toString()) {
+        res.status(401);
+        throw new Error('Not authorized');
+    }
+
+    res.json(attempt);
+});
+
 module.exports = {
     createQuiz,
     getAllQuizzes,
@@ -212,5 +256,8 @@ module.exports = {
     updateQuiz,
     deleteQuiz,
     publishQuiz,
-    unpublishQuiz
+    unpublishQuiz,
+    uploadQuizImage,
+    getQuizReports,
+    getQuizAttempt
 };

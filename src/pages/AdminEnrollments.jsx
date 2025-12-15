@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAdminEnrollments, getStudentCredentials, resendStudentCredentials } from '../lib/api'; // Updated import
+import { getAdminEnrollments, getStudentCredentials, resendStudentCredentials, exportEnrollments, updateStudentDetails } from '../lib/api'; // Updated import
 import { Icons } from '../components/icons';
 import Card from '../components/ui/Card';
 
@@ -9,7 +9,10 @@ export default function AdminEnrollments() {
     const [filterType, setFilterType] = useState('All');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const [selectedStudent, setSelectedStudent] = useState(null); // For modal
+    const [selectedStudent, setSelectedStudent] = useState(null); // For credentials modal
+    const [editingStudent, setEditingStudent] = useState(null); // For edit modal
+    const [editForm, setEditForm] = useState({ name: '', email: '', phone: '' });
+
     const [adminPassword, setAdminPassword] = useState('');
     const [credentials, setCredentials] = useState(null);
     const [credentialError, setCredentialError] = useState('');
@@ -31,11 +34,58 @@ export default function AdminEnrollments() {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            const response = await exportEnrollments({ type: filterType, search: searchTerm });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'enrollments.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Export failed", err);
+            alert("Failed to export enrollments");
+        }
+    };
+
     const handleViewCredentials = (student) => {
         setSelectedStudent(student);
         setCredentials(null);
         setAdminPassword('');
         setCredentialError('');
+    };
+
+    const handleEditStudent = (student) => {
+        setEditingStudent(student);
+        setEditForm({
+            name: student.studentName,
+            email: student.email,
+            phone: student.phone !== 'N/A' ? student.phone : '',
+            year: student.year || '',
+            department: student.department || '',
+            registerNumber: student.registerNumber || '',
+            institutionName: student.institutionName || '',
+            state: student.state || '',
+            city: student.city || '',
+            pincode: student.pincode || ''
+        });
+    };
+
+    const handleUpdateStudent = async (e) => {
+        e.preventDefault();
+        if (!editingStudent) return;
+
+        try {
+            await updateStudentDetails(editingStudent.userId, editForm);
+            alert('Student details updated successfully!');
+            setEditingStudent(null);
+            fetchEnrollments(); // Refresh list
+        } catch (error) {
+            console.error("Update failed", error);
+            alert('Failed to update: ' + (error.response?.data?.message || 'Server Error'));
+        }
     };
 
     const handleResendCredentials = async () => {
@@ -53,7 +103,6 @@ export default function AdminEnrollments() {
         e.preventDefault();
         setCredentialError('');
         try {
-            // Fix: Use selectedStudent.userId (Student ID) not selectedStudent._id (Enrollment ID)
             const data = await getStudentCredentials(selectedStudent.userId, adminPassword);
             setCredentials(data);
         } catch (err) {
@@ -63,7 +112,15 @@ export default function AdminEnrollments() {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">Enrolled Students</h1>
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Enrolled Students</h1>
+                <button
+                    onClick={handleExport}
+                    className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 bg-white"
+                >
+                    <Icons.Download size={18} /> Export List
+                </button>
+            </div>
 
             {/* Filters */}
             <div className="flex gap-4 mb-6">
@@ -141,12 +198,18 @@ export default function AdminEnrollments() {
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {new Date(enrollment.enrolledAt).toLocaleDateString()}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium flex gap-2">
                                         <button
                                             onClick={() => handleViewCredentials(enrollment)}
                                             className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded"
                                         >
                                             View Credentials
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditStudent(enrollment)}
+                                            className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded"
+                                        >
+                                            Edit
                                         </button>
                                     </td>
                                 </tr>
@@ -155,6 +218,130 @@ export default function AdminEnrollments() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Edit Student Modal */}
+            {editingStudent && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-lg font-bold mb-4">Edit Student Details</h3>
+                        <form onSubmit={handleUpdateStudent} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Name</label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                    value={editForm.name}
+                                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Email</label>
+                                <input
+                                    type="email"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                    value={editForm.email}
+                                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                                <input
+                                    type="text"
+                                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                    value={editForm.phone}
+                                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Institution Name</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.institutionName}
+                                        onChange={(e) => setEditForm({ ...editForm, institutionName: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Department</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.department}
+                                        onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Year</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.year}
+                                        onChange={(e) => setEditForm({ ...editForm, year: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Register Number</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.registerNumber}
+                                        onChange={(e) => setEditForm({ ...editForm, registerNumber: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">City</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.city}
+                                        onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">State</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.state}
+                                        onChange={(e) => setEditForm({ ...editForm, state: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700">Pincode</label>
+                                    <input
+                                        type="text"
+                                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                                        value={editForm.pincode}
+                                        onChange={(e) => setEditForm({ ...editForm, pincode: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 mt-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingStudent(null)}
+                                    className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Credential Modal */}
             {selectedStudent && (

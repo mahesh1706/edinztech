@@ -1,4 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
+import AdminQuizReports from '../pages/AdminQuizReports';
+import AdminQuizAttemptDetail from '../pages/AdminQuizAttemptDetail'; // Added
 import PublicLayout from '../layouts/PublicLayout';
 import DashboardLayout from '../layouts/DashboardLayout';
 import AdminLayout from '../layouts/AdminLayout';
@@ -105,6 +107,8 @@ export const router = createBrowserRouter([
             { path: '/admin/programs/:id/edit', element: <AdminProgramsEdit /> }, // Edit route
             { path: '/admin/quizzes', element: <AdminQuizzes /> },
             { path: '/admin/quizzes/new', element: <AdminQuizzesNew /> },
+            { path: '/admin/quizzes/:id/reports', element: <AdminQuizReports /> },
+            { path: '/admin/quizzes/attempt/:id', element: <AdminQuizAttemptDetail /> }, // Re-adding missing route
             { path: 'feedbacks', element: <AdminFeedbacks /> },
             { path: 'feedbacks/new', element: <AdminFeedbacksNew /> },
             { path: 'feedbacks/:id/edit', element: <AdminFeedbacksEdit /> },

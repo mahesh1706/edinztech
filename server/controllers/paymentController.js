@@ -23,7 +23,7 @@ const { encrypt, decrypt, generateUserCode } = require('../utils/encryption');
 // @access  Public
 const createOrder = asyncHandler(async (req, res) => {
     try {
-        const { programId, name, email, phone, programType } = req.body;
+        const { programId, name, email, phone, programType, year, department, registerNumber, institutionName, state, city, pincode } = req.body;
         // NOTE: 'amount' from frontend is IGNORED for security.
 
         if (!name || !email || !phone) {
@@ -59,7 +59,14 @@ const createOrder = asyncHandler(async (req, res) => {
                 programType: programType || program.type, // Fallback to DB type
                 name,
                 email,
-                phone
+                phone,
+                year,
+                department,
+                registerNumber,
+                institutionName,
+                state,
+                city,
+                pincode
             }
         };
 
@@ -175,11 +182,11 @@ const handleWebhook = asyncHandler(async (req, res) => {
 
         if (event === 'payment.captured') {
             const paymentEntity = payload.payment.entity;
-            const { notes, email, contact, order_id, id: paymentId, amount } = paymentEntity;
-
             const userEmail = notes.email || email;
             const userPhone = notes.phone || contact;
             const userName = notes.name || 'Student';
+            const { year, department, registerNumber, institutionName, state, city, pincode } = notes;
+
             const programId = notes.programId;
             const programType = notes.programType || 'Course'; // Default fallback
 
@@ -199,6 +206,13 @@ const handleWebhook = asyncHandler(async (req, res) => {
                         name: userName,
                         email: userEmail,
                         phone: userPhone,
+                        year,
+                        department,
+                        registerNumber,
+                        institutionName,
+                        state,
+                        city,
+                        pincode,
                         password: autoPassword,
                         encryptedPassword: encrypt(autoPassword),
                         userCode: userCode,
@@ -310,7 +324,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
             const { notes, amount, status } = order;
             // Notes contain: programId, programType, name, email, phone
 
-            const { programId, programType, email, name, phone } = notes;
+            const { programId, programType, email, name, phone, year, department, registerNumber, institutionName, state, city, pincode } = notes;
 
             // Use the same logic as webhook to enroll
             // Check if user exists (Idempotent creation)
@@ -327,6 +341,13 @@ const verifyPayment = asyncHandler(async (req, res) => {
                     name: name || 'Student',
                     email,
                     phone,
+                    year,
+                    department,
+                    registerNumber,
+                    institutionName,
+                    state,
+                    city,
+                    pincode,
                     password: autoPassword,
                     encryptedPassword: encrypt(autoPassword),
                     userCode,

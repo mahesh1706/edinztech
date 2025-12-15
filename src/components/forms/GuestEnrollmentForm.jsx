@@ -15,7 +15,14 @@ const GuestEnrollmentForm = ({ program, onClose }) => {
                 programType: program.type,
                 name: data.name,
                 email: data.email,
-                phone: data.phone
+                phone: data.phone,
+                year: data.year,
+                department: data.department,
+                registerNumber: data.registerNumber,
+                institutionName: data.institutionName,
+                state: data.state,
+                city: data.city,
+                pincode: data.pincode
             };
 
             const order = await createPaymentOrder(orderData);
@@ -114,6 +121,42 @@ const GuestEnrollmentForm = ({ program, onClose }) => {
                             placeholder="9876543210"
                         />
                         {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
+                    </div>
+
+                    {/* Extended Profile Info */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Institution Name</label>
+                            <input {...register("institutionName")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="University" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Register No</label>
+                            <input {...register("registerNumber")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="Roll No" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Department</label>
+                            <input {...register("department")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="Dept" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Year</label>
+                            <input {...register("year")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" placeholder="Year" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700">City</label>
+                            <input {...register("city")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700">State</label>
+                            <input {...register("state")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                        </div>
+                        <div className="col-span-1">
+                            <label className="block text-sm font-medium text-gray-700">Pincode</label>
+                            <input {...register("pincode")} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border" />
+                        </div>
                     </div>
 
                     <div className="pt-2">

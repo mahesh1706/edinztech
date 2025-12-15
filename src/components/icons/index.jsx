@@ -28,11 +28,14 @@ import {
     Mail,
     UserPlus,
     MessageSquare,
+    MessageCircle, // Added
     BarChart,
     Dot,
     User, // Added
     LayoutDashboard, // Added
     Settings, // Added for ProgramForm
+    FileText, // Added
+    ArrowLeft, // Added
 } from 'lucide-react';
 
 export const Icons = {
@@ -53,6 +56,7 @@ export const Icons = {
     // UI Controls
     Menu: (props) => <Menu className="text-primary" {...props} />,
     Close: (props) => <X className="text-primary" {...props} />,
+    X: (props) => <X className="text-primary" {...props} />, // Added alias
     ChevronRight: (props) => <ChevronRight className="text-gray-400" {...props} />,
     ChevronDown: (props) => <ChevronDown className="text-gray-400" {...props} />, // Added
     Search: (props) => <Search className="text-gray-400" {...props} />,
@@ -67,6 +71,7 @@ export const Icons = {
     Mail: (props) => <Mail className="text-secondary" {...props} />,
     UserPlus: (props) => <UserPlus className="text-secondary" {...props} />,
     MessageSquare: (props) => <MessageSquare className="text-secondary" {...props} />,
+    MessageCircle: (props) => <MessageCircle className="text-secondary" {...props} />, // Added
     BarChart: (props) => <BarChart className="text-secondary" {...props} />,
     CheckCircle: (props) => <CheckCircle className="text-success" {...props} />,
     AlertCircle: (props) => <AlertCircle className="text-danger" {...props} />,
@@ -88,4 +93,7 @@ export const Icons = {
     Upload: (props) => <Upload className="text-primary" {...props} />,
     User: (props) => <User className="text-primary" {...props} />, // Added
     Dashboard: (props) => <LayoutDashboard className="text-primary" {...props} />, // Added
+    Clock: (props) => <Clock className="text-primary" {...props} />, // Added generic Clock
+    FileText: (props) => <FileText className="text-secondary" {...props} />, // Added
+    ArrowLeft: (props) => <ArrowLeft className="text-secondary" {...props} />, // Added
 };

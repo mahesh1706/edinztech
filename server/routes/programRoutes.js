@@ -5,14 +5,20 @@ const {
     getProgramById,
     createProgram,
     updateProgram,
-    deleteProgram
+    deleteProgram,
+    exportPrograms,
+    toggleFeedbackStatus // Added
 } = require('../controllers/programController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
+router.get('/export', protect, admin, exportPrograms); // Add Export Route
+
 router.route('/')
     .get(getPrograms)
     .post(protect, admin, createProgram);
+
+router.patch('/:id/toggle-feedback', protect, admin, toggleFeedbackStatus); // Added
 
 router.route('/:id')
     .get(getProgramById)

@@ -11,12 +11,16 @@ const {
     getMyFeedbacks,
     getFeedbackForSubmission,
     submitFeedback,
-    exportFeedbackResponses
+    exportFeedbackResponses,
+    getPendingDefaultFeedbacks, // Added
+    submitDefaultFeedback // Added
 } = require('../controllers/feedbackController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
 // Student Routes
 router.get('/me', protect, getMyFeedbacks);
+router.get('/me/default-pending', protect, getPendingDefaultFeedbacks); // Added
+router.post('/me/default', protect, submitDefaultFeedback); // Added
 router.get('/me/:id', protect, getFeedbackForSubmission);
 router.post('/me/:id', protect, submitFeedback);
 

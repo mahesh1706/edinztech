@@ -28,8 +28,8 @@ export default function ProgramGrid({ title, programs = [], emptyMessage, type }
                         <div key={p.id} className="relative h-full group">
                             <ProgramCard program={p} />
                             <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary shadow-sm border border-orange-100 z-10 flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></div>
-                                In Progress
+                                <div className={`w-1.5 h-1.5 rounded-full ${p.status === 'active' ? 'bg-green-500' : 'bg-gray-400'} animate-pulse`}></div>
+                                <span className="capitalize">{p.status || 'Active'}</span>
                             </div>
                         </div>
                     ))}

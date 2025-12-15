@@ -117,10 +117,90 @@ const deleteProgram = asyncHandler(async (req, res) => {
     }
 });
 
+// @desc    Export Programs to CSV
+// @route   GET /api/programs/export
+// @access  Private/Admin
+const exportPrograms = asyncHandler(async (req, res) => {
+    // Reuse filtering logic from getPrograms
+    const keyword = req.query.keyword ? {
+        title: {
+            $regex: req.query.keyword,
+            $options: 'i',
+        },
+    } : {};
+
+    const typeFilter = req.query.type && req.query.type !== 'All' ? { type: req.query.type } : {};
+
+    const programs = await Program.aggregate([
+        { $match: { ...keyword, ...typeFilter, isArchived: false } },
+        {
+            $lookup: {
+                from: 'enrollments',
+                localField: '_id',
+                foreignField: 'program',
+                as: 'enrollmentsData'
+            }
+        },
+        {
+            $addFields: {
+                enrolledCount: { $size: '$enrollmentsData' }
+            }
+        },
+        { $project: { enrollmentsData: 0 } },
+        { $sort: { createdAt: -1 } }
+    ]);
+
+    // Generate CSV
+    let csv = 'Title,Code,Type,Mode,Fee,Enrolled Count,Status,Created At\n';
+
+    programs.forEach(p => {
+        const row = [
+            `"${p.title.replace(/"/g, '""')}"`,
+            `"${p.code || ''}"`,
+            p.type,
+            p.mode,
+            p.fee,
+            p.enrolledCount,
+            p.isArchived ? 'Archived' : 'Active',
+            p.createdAt ? new Date(p.createdAt).toISOString().split('T')[0] : ''
+        ];
+        csv += row.join(',') + '\n';
+    });
+
+    res.header('Content-Type', 'text/csv');
+    res.attachment('programs.csv');
+    res.send(csv);
+    res.send(csv);
+});
+
+// @desc    Toggle Default Feedback Status
+// @route   PATCH /api/admin/programs/:id/toggle-feedback
+// @access  Private/Admin
+// @route   PATCH /api/admin/programs/:id/toggle-feedback
+// @access  Private/Admin
+const toggleFeedbackStatus = asyncHandler(async (req, res) => {
+    console.log(`[DEBUG] Toggle Feedback hit for ID: ${req.params.id}`);
+    const program = await Program.findById(req.params.id);
+
+    if (program) {
+        console.log(`[DEBUG] Current Status: ${program.isFeedbackEnabled}`);
+        program.isFeedbackEnabled = !program.isFeedbackEnabled;
+        const updatedProgram = await program.save();
+        console.log(`[DEBUG] New Status: ${updatedProgram.isFeedbackEnabled}`);
+        res.json(updatedProgram);
+    } else {
+        console.log(`[DEBUG] Program not found`);
+        res.status(404);
+        throw new Error('Program not found');
+    }
+});
+
 module.exports = {
     getPrograms,
     getProgramById,
     createProgram,
     updateProgram,
     deleteProgram,
+    exportPrograms,
+    toggleFeedbackStatus
 };

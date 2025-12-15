@@ -210,8 +210,8 @@ const getFeedbackForSubmission = asyncHandler(async (req, res) => {
 
     // Security check: User must be enrolled
     const enrollment = await Enrollment.findOne({
-        userId: req.user._id,
-        programId: feedback.programId,
+        user: req.user._id,
+        program: feedback.programId,
         status: 'active'
     });
 
@@ -309,6 +309,85 @@ const exportFeedbackResponses = asyncHandler(async (req, res) => {
     res.send(csv);
 });
 
+// @desc    Get Pending Default Feedbacks
+// @route   GET /api/feedback/me/default-pending
+// @access  Private
+const getPendingDefaultFeedbacks = asyncHandler(async (req, res) => {
+    // 1. Get active enrollments
+    // 2. Check program.isFeedbackEnabled
+    // 3. Check if not already submitted
+
+    // Using aggregation for efficiency? Or simple loops.
+    // Let's use loop for readability first.
+
+    const enrollments = await Enrollment.find({ user: req.user._id, status: 'active' })
+        .populate('program');
+
+    const pending = [];
+
+    for (const enrollment of enrollments) {
+        if (enrollment.program && enrollment.program.isFeedbackEnabled) {
+            const existing = await DefaultFeedbackResponse.findOne({
+                programId: enrollment.program._id,
+                userId: req.user._id
+            });
+
+            if (!existing) {
+                pending.push({
+                    ...enrollment.program.toObject(),
+                    enrollmentId: enrollment._id
+                });
+            }
+        }
+    }
+
+    res.json(pending);
+});
+
+// @desc    Submit Default Feedback
+// @route   POST /api/feedback/me/default
+// @access  Private
+const submitDefaultFeedback = asyncHandler(async (req, res) => {
+    const { programId, inspireId, name, organization, email, mobile, place, state, feedback } = req.body;
+
+    const program = await mongoose.model('Program').findById(programId);
+    if (!program || !program.isFeedbackEnabled) {
+        res.status(400);
+        throw new Error('Default feedback not enabled for this program');
+    }
+
+    // Check enrollment
+    const enrollment = await Enrollment.findOne({
+        user: req.user._id,
+        program: programId,
+        status: 'active'
+    });
+
+    if (!enrollment) {
+        res.status(403);
+        throw new Error('Not enrolled');
+    }
+
+    // Check duplicate
+    const existing = await DefaultFeedbackResponse.findOne({
+        programId,
+        userId: req.user._id
+    });
+
+    if (existing) {
+        res.status(400);
+        throw new Error('Already submitted');
+    }
+
+    const response = await DefaultFeedbackResponse.create({
+        programId,
+        userId: req.user._id,
+        inspireId, name, organization, email, mobile, place, state, feedback
+    });
+
+    res.status(201).json(response);
+});
+
 module.exports = {
     createFeedback,
     getAdminFeedbacks,
@@ -320,5 +399,7 @@ module.exports = {
     getMyFeedbacks,
     getFeedbackForSubmission,
     submitFeedback,
-    exportFeedbackResponses
+    exportFeedbackResponses,
+    getPendingDefaultFeedbacks,
+    submitDefaultFeedback
 };

@@ -108,43 +108,91 @@ const submitQuizAttempt = asyncHandler(async (req, res) => {
     }
 
     // Calculate Score
-    let correctCount = 0;
-    const totalQuestions = quiz.questions.length;
+    let totalScore = 0;
+    let totalMaxScore = 0;
+    let hasPending = false;
 
-    // Process answers (Assuming answers is an object like { 0: 1, 1: 3 } or array)
-    // Let's assume frontend sends { questionIdOrIndex: optionIndex }
-    // Or simplified array matching index.
-    // For simplicity, let's look at how Quiz model stores questions.
-    // Quiz.questions is an array.
+    const processedAnswers = [];
 
-    Object.keys(answers).forEach((qIndex) => {
-        const selectedOpt = answers[qIndex]; // This is the index of option selected
-        const question = quiz.questions[qIndex];
+    quiz.questions.forEach(question => {
+        const qId = question._id.toString();
+        // Determine how frontend sends answers. 
+        // Let's assume 'answers' is an object { [qId]: { option: index, text: string } } 
+        // OR an array of objects matching frontend structure.
+        // Step 437's meQuizController had: answers = { index: option } (Keys were indices).
+        // Let's adapt to new schema: answers = { [questionIndex]: value } or better { [questionId]: value }
+        // BUT `QuizForm` used indices. Let's support both or stick to Index if IDs are tricky.
+        // Actually, let's look at the input 'answers'. 
+        // If we switch to IDs in frontend, we use IDs. If Index, we use Index.
+        // Let's assume answers is: { [questionIndex]: { type: 'mcq'|'text', value: ... } }
+        // OR simpler: just the answer value, and we infer from question index.
 
-        if (question && parseInt(selectedOpt) === question.correctOption) {
-            correctCount++;
-        }
+        // Let's iterate using Index to match the incoming answers object from Step 437 logic (Object.keys(answers)).
     });
 
-    const scorePercentage = (correctCount / totalQuestions) * 100;
+    // Re-writing loop to work with existing Index-based logic but enhanced:
+    // answers: { "0": "1", "1": "Some text" } (where value is string)
+
+    quiz.questions.forEach((question, index) => {
+        const submittedValue = answers[index]; // Value from frontend
+        let isCorrect = false;
+        let marksAwarded = 0;
+        let selectedOption = null;
+        let textAnswer = null;
+
+        totalMaxScore += question.marks || 1;
+
+        if (submittedValue !== undefined) {
+            if (question.type === 'mcq') {
+                selectedOption = parseInt(submittedValue);
+                if (selectedOption === question.correctOption) {
+                    isCorrect = true;
+                    marksAwarded = question.marks || 1;
+                }
+            } else {
+                textAnswer = submittedValue;
+                // Text answers are pending by default unless we do exact match (optional)
+                // For now, mark as pending (isCorrect=false, marks=0 initially)
+                hasPending = true;
+            }
+        }
+
+        totalScore += marksAwarded;
+
+        processedAnswers.push({
+            questionId: question._id,
+            questionType: question.type,
+            selectedOption,
+            textAnswer,
+            isCorrect,
+            marksAwarded
+        });
+    });
+
+    const scorePercentage = totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
     const passed = scorePercentage >= quiz.passingScore;
+    const status = hasPending ? 'Pending Review' : 'Graded';
 
     const attempt = await QuizAttempt.create({
         quiz: quizId,
         user: userId,
-        answers: Object.entries(answers).map(([k, v]) => ({ questionId: k, selectedOption: v })),
-        score: scorePercentage,
-        totalQuestions,
-        passed,
+        answers: processedAnswers,
+        score: scorePercentage, // Percentage
+        totalMaxScore,
+        passed: hasPending ? false : passed, // If pending, pass status is tentative or false? Let's say false until graded.
+        status,
         attemptedAt: Date.now()
     });
 
     res.json({
         success: true,
         score: scorePercentage,
-        passed,
+        passed: hasPending ? false : passed,
+        status,
         attemptId: attempt._id,
-        summary: `You got ${correctCount} out of ${totalQuestions} correct.`
+        summary: hasPending
+            ? `Quiz submitted! Your MCQ score is ${totalScore}/${totalMaxScore}. Written answers are pending review.`
+            : `You scored ${totalScore}/${totalMaxScore} (${Math.round(scorePercentage)}%).`
     });
 });
 

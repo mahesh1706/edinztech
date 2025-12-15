@@ -4,7 +4,7 @@ import { Icons } from '../components/icons/index';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import api, { publishCertificates } from '../lib/api';
+import api, { publishCertificates, exportPrograms, toggleProgramFeedback } from '../lib/api'; // Added toggleProgramFeedback
 import AdminTable from '../components/AdminTable'; // Keep AdminTable import as it's used in JSX
 
 export default function AdminPrograms() {
@@ -40,6 +40,22 @@ export default function AdminPrograms() {
         }
     };
 
+    const handleExport = async () => {
+        try {
+            const response = await exportPrograms();
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'programs.csv');
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (err) {
+            console.error("Export failed", err);
+            alert("Failed to export programs");
+        }
+    };
+
     const handlePublishCertificate = async (programId, title) => {
         if (!window.confirm(`Are you sure you want to publish certificates for "${title}"? This will issue certificates to all enrolled students.`)) return;
 
@@ -52,16 +68,38 @@ export default function AdminPrograms() {
         }
     };
 
+    const handleToggleFeedback = async (program) => {
+        try {
+            await toggleProgramFeedback(program._id || program.id);
+            // Refresh list or update local state
+            setPrograms(programs.map(p => {
+                if ((p._id || p.id) === (program._id || program.id)) {
+                    return { ...p, isFeedbackEnabled: !p.isFeedbackEnabled };
+                }
+                return p;
+            }));
+            // alert("Status updated!"); // Optional: Feedback for user
+        } catch (error) {
+            console.error("Failed to toggle feedback", error);
+            alert("Failed to update status");
+        }
+    };
+
     if (isLoading && !programs.length) { // Only full page load initially
         return (
             <div className="space-y-6 animate-in fade-in duration-500">
                 <div className="flex justify-between items-center contents-start"> {/* Keep header static */}
                     <h1 className="text-2xl font-bold text-secondary">All Programs</h1>
-                    <Link to="/admin/programs/new">
-                        <Button className="gap-2">
-                            <Icons.Plus size={18} /> Add Program
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={handleExport} className="gap-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+                            <Icons.Download size={18} /> Export
                         </Button>
-                    </Link>
+                        <Link to="/admin/programs/new">
+                            <Button className="gap-2">
+                                <Icons.Plus size={18} /> Add Program
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
                 <p>Loading programs...</p>
             </div>
@@ -89,11 +127,16 @@ export default function AdminPrograms() {
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <h1 className="text-2xl font-bold text-secondary">All Programs</h1>
-                <Link to="/admin/programs/new">
-                    <Button className="gap-2">
-                        <Icons.Plus size={18} /> Add Program
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={handleExport} className="gap-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+                        <Icons.Download size={18} /> Export
                     </Button>
-                </Link>
+                    <Link to="/admin/programs/new">
+                        <Button className="gap-2">
+                            <Icons.Plus size={18} /> Add Program
+                        </Button>
+                    </Link>
+                </div>
             </div>
 
             {/* Search and Filter Toolbar */}
@@ -161,6 +204,16 @@ export default function AdminPrograms() {
                                     title="Publish Certificates"
                                 >
                                     <Icons.Award size={18} />
+                                </button>
+                                <button
+                                    onClick={() => handleToggleFeedback(program)}
+                                    className={`p-1.5 rounded-md transition-all duration-200 ${program.isFeedbackEnabled
+                                        ? 'bg-purple-600 text-white shadow-sm ring-2 ring-purple-200'
+                                        : 'text-gray-400 hover:bg-gray-100'
+                                        }`}
+                                    title={program.isFeedbackEnabled ? "Feedback Enabled (Click to disable)" : "Feedback Disabled (Click to enable)"}
+                                >
+                                    {program.isFeedbackEnabled ? <Icons.MessageCircle size={18} /> : <Icons.MessageSquare size={18} />}
                                 </button>
                             </div>
                         </td>

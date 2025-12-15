@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
-import { getMyFeedbacks } from '../lib/api';
+import { getMyFeedbacks, getPendingDefaultFeedbacks } from '../lib/api'; // Added getPendingDefaultFeedbacks
+import DefaultFeedbackForm from '../components/forms/DefaultFeedbackForm'; // Added Form
 
 export default function DashboardFeedbacks() {
     const [feedbacks, setFeedbacks] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedDefaultProgram, setSelectedDefaultProgram] = useState(null); // Added missing state
 
     useEffect(() => {
         const fetchFeedbacks = async () => {
@@ -82,11 +84,20 @@ export default function DashboardFeedbacks() {
 
                             <div className="mt-auto pt-4 border-t border-gray-50">
                                 {fb.userStatus === 'Available' ? (
-                                    <Link to={`/dashboard/feedbacks/${fb._id}`}>
-                                        <Button className="w-full">
-                                            Give Feedback
+                                    fb.isDefault ? (
+                                        <Button
+                                            onClick={() => setSelectedDefaultProgram(fb.originalProgram)}
+                                            className="w-full bg-orange-500 hover:bg-orange-600 border-orange-500"
+                                        >
+                                            Complete Now
                                         </Button>
-                                    </Link>
+                                    ) : (
+                                        <Link to={`/dashboard/feedbacks/${fb._id}`}>
+                                            <Button className="w-full">
+                                                Give Feedback
+                                            </Button>
+                                        </Link>
+                                    )
                                 ) : (
                                     <Button disabled variant="outline" className="w-full">
                                         {fb.userStatus === 'Completed' ? 'Submitted' : 'Not Available'}
@@ -97,6 +108,37 @@ export default function DashboardFeedbacks() {
                     ))}
                 </div>
             )}
+
+            {/* Default Feedback Modal */}
+            {selectedDefaultProgram && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl max-h-[90vh] overflow-y-auto">
+                        <button
+                            onClick={() => setSelectedDefaultProgram(null)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 bg-gray-100 rounded-full p-1"
+                        >
+                            <Icons.X size={20} />
+                        </button>
+                        <Alert
+                            title={`Feedback for ${selectedDefaultProgram.title}`}
+                            subTitle="Please complete this form to generate your certificate."
+                        />
+                        <div className="p-2">
+                            <DefaultFeedbackForm
+                                program={selectedDefaultProgram}
+                                onSuccess={() => window.location.reload()}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+// Simple Alert Helper
+const Alert = ({ title, subTitle }) => (
+    <div className="bg-orange-50 p-4 border-b border-orange-100">
+        <h3 className="text-orange-800 font-bold">{title}</h3>
+        <p className="text-orange-600 text-sm">{subTitle}</p>
+    </div>
+);

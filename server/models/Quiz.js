@@ -2,10 +2,22 @@ const mongoose = require('mongoose');
 
 const questionSchema = mongoose.Schema({
     question: { type: String, required: true },
-    options: [{ type: String, required: true }],
-    correctOption: {
-        type: Number, // Index of the correct option (0-3) or string value? Prompt said "A"|"B"... let's use Index or Value. UI sends Strings.
+    type: {
+        type: String,
+        enum: ['mcq', 'text'],
+        default: 'mcq',
         required: true
+    },
+    image: { type: String }, // Optional image URL
+    marks: { type: Number, default: 1, required: true },
+    options: [{ type: String }], // Optional for text questions (validation in controller/frontend)
+    correctOption: {
+        type: Number, // Index (0-3) for MCQ
+        required: function () { return this.type === 'mcq'; }
+    },
+    correctAnswer: {
+        type: String, // Reference answer for text questions (for admin grading)
+        required: function () { return this.type === 'text'; }
     }
 });
 

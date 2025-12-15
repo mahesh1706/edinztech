@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icons } from '../components/icons';
 import Button from '../components/ui/Button';
-import { getAdminFeedbacks, deleteFeedback, publishFeedback, unpublishFeedback } from '../lib/api';
+import { getAdminFeedbacks, deleteFeedback, publishFeedback, unpublishFeedback, exportFeedback } from '../lib/api';
 
 export default function AdminFeedbacks() {
     console.log("AdminFeedbacks component loaded");
@@ -58,6 +58,22 @@ export default function AdminFeedbacks() {
         }
     };
 
+    const handleExport = async (id) => {
+        try {
+            const response = await exportFeedback(id);
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `feedback-${id}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Export failed", error);
+            alert("Failed to export responses");
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="flex items-center justify-between mb-6">
@@ -109,6 +125,13 @@ export default function AdminFeedbacks() {
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => handleExport(fb._id)}
+                                                className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
+                                                title="Export Responses"
+                                            >
+                                                <Icons.Download size={18} />
+                                            </button>
                                             <button
                                                 onClick={() => handlePublishToggle(fb)}
                                                 className={`p-2 transition-colors ${fb.status === 'Published' ? 'text-green-600' : 'text-gray-400 hover:text-green-600'}`}

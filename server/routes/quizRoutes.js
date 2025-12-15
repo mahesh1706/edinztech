@@ -9,9 +9,17 @@ const {
     updateQuiz,
     deleteQuiz,
     publishQuiz,
-    unpublishQuiz
+    unpublishQuiz,
+    uploadQuizImage,
+    getQuizReports,
+    getQuizAttempt // Added
 } = require('../controllers/quizController');
 const { protect, admin } = require('../middlewares/authMiddleware');
+const upload = require('../middlewares/uploadMiddleware'); // Import upload middleware
+
+router.post('/upload', protect, admin, upload.single('image'), uploadQuizImage); // Image Upload
+router.get('/:id/reports', protect, admin, getQuizReports); // Get Reports
+router.get('/attempt/:id', protect, admin, getQuizAttempt); // New Route for Single Attempt Detail
 
 router.post('/', protect, admin, createQuiz);
 router.get('/all', protect, admin, getAllQuizzes); // Admin route to get all
