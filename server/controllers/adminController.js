@@ -74,7 +74,7 @@ const inviteStudent = async (req, res) => {
         });
 
         // 4. Send Notification (Email)
-        const loginUrl = process.env.FRONTEND_URL || 'http://localhost:5173/login';
+        const loginUrl = process.env.FRONTEND_URL || 'http://72.60.103.246/login';
         const emailSubject = `You’ve been invited to join your program at EdinzTech LMS`;
         const emailBody = `
             <h3>Hello ${user.name},</h3>

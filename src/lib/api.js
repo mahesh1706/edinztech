@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create Axios Instance
 const api = axios.create({
-    baseURL: '/api', // Vite proxy handles the rest
+    baseURL: import.meta.env.VITE_API_URL || 'http://72.60.103.246:5000/api', // Fallback to production IP
     headers: {
         'Content-Type': 'application/json',
     },
