@@ -1,38 +1,78 @@
 const mongoose = require('mongoose');
 
 const certificateSchema = mongoose.Schema({
+    // Primary Key for Verification (ISS ID)
+    certificateId: {
+        type: String,
+        required: true,
+        unique: true,
+        index: true
+    },
+    qrCode: { type: String }, // Base64 QR Data URL (New Architecture)
+
+    // Relationships
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true
     },
     program: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Program',
+        required: true,
+        index: true
+    },
+
+    // Decoupled Course Data
+    courseName: {
+        type: String,
         required: true
     },
-    certificateId: {
-        type: String,
-        required: true,
-        unique: true
+    courseId: {
+        type: String, // Optional link to Course collection (e.g. "1", "2")
+        ref: 'Course'
     },
-    issueDate: {
-        type: Date,
-        default: Date.now
+
+    // Timeline
+    timeline: {
+        startDate: Date,
+        endDate: Date,
+        duration: String
     },
-    fileUrl: {
-        type: String // In case we generate and upload a PDF
+
+    // Verification Status
+    verification: {
+        status: {
+            type: String,
+            enum: ['valid', 'revoked'],
+            required: true
+        },
+        source: {
+            type: String,
+            enum: ['legacy', 'new'],
+            default: 'legacy'
+        }
     },
-    status: {
-        type: String,
-        enum: ['pending', 'sent', 'failed'],
-        default: 'pending'
+
+    // File Paths
+    files: {
+        legacyPath: String,
+        generatedPdf: String
     },
+
+    // Audit Trail
+    audit: {
+        legacyMysqlId: String,
+        migratedAt: {
+            type: Date,
+            default: Date.now
+        }
+    },
+
+    // Optional legacy metadata
     metadata: {
         type: Object
-    },
-    error: {
-        type: String
     }
 }, {
     timestamps: true

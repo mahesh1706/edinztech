@@ -36,12 +36,19 @@ import {
     Settings, // Added for ProgramForm
     FileText, // Added
     ArrowLeft, // Added
+    Shield, // Added
+    QrCode, // Added
+    XCircle, // Added
+    History, // Added for Legacy Verify Section
 } from 'lucide-react';
 
 export const Icons = {
     // Navigation & General
+    History: (props) => <History className="text-secondary" {...props} />, // Added
     Rocket: (props) => <Rocket className="text-primary" {...props} />,
     ShieldCheck: (props) => <ShieldCheck className="text-secondary" {...props} />,
+    Shield: (props) => <Shield className="text-secondary" {...props} />, // Added
+    QrCode: (props) => <QrCode className="text-secondary" {...props} />, // Added
     Home: (props) => <Home className="text-secondary" {...props} />,
     BookOpen: (props) => <BookOpen className="text-secondary" {...props} />, // Added for generic usage
     Courses: (props) => <BookOpen className="text-secondary" {...props} />,
@@ -75,6 +82,7 @@ export const Icons = {
     BarChart: (props) => <BarChart className="text-secondary" {...props} />,
     CheckCircle: (props) => <CheckCircle className="text-success" {...props} />,
     AlertCircle: (props) => <AlertCircle className="text-danger" {...props} />,
+    XCircle: (props) => <XCircle className="text-danger" {...props} />, // Added
 
     // Status
     Success: (props) => <CheckCircle className="text-success" {...props} />,

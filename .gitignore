@@ -22,3 +22,14 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Generated Content (Certificates & Offer Letters)
+certificate-service/temp/
+server/temp/
+*.pdf
+
+# Exceptions (Keep Templates & Admin Uploads)
+!server/uploads/
+!server/templates/
+!certificate-service/templates/
+!**/public/**/*.pdf

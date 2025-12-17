@@ -38,7 +38,7 @@ app.use('/files', express.static(path.join(__dirname, 'temp')));
 
 app.post('/api/generate', async (req, res) => {
     console.log('[Certificate Service] Received request');
-    const { studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type } = req.body;
+    const { studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type, qrCode } = req.body;
 
     if (!studentData || !certificateId || !callbackUrl) {
         return res.status(400).json({ message: 'Missing required fields' });
@@ -46,10 +46,10 @@ app.post('/api/generate', async (req, res) => {
 
     res.status(202).json({ message: 'Request accepted. Processing started.' });
 
-    processCertificate({ studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type });
+    processCertificate({ studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type, qrCode });
 });
 
-async function processCertificate({ studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type }) {
+async function processCertificate({ studentData, courseData, certificateId, callbackUrl, templateId, templateUrl, type, qrCode }) {
     console.log(`[Processing] ${type || 'Certificate'}: ${certificateId} for ${studentData.name}`);
     const filePath = path.join(tempDir, `${certificateId}.pdf`);
 
@@ -298,10 +298,31 @@ async function processCertificate({ studentData, courseData, certificateId, call
                             .closing { font-size: 13pt; margin-top: 30px; }
                             .signature-section { margin-top: 60px; font-weight: bold; font-size: 13pt; }
                             .sign-name { margin-top: 50px; }
+                            .qr-code {
+                                position: absolute;
+                                top: 3.5cm; /* Aligned with Header space */
+                                right: 2cm;
+                                width: 2.5cm;
+                                height: 2.5cm;
+                                z-index: 10;
+                            }
+                            .cert-id-text {
+                                position: absolute;
+                                top: 6.2cm; /* Just below QR (3.5 + 2.5 + margin) */
+                                right: 1.25cm; /* Adjusted to center relative to QR */
+                                width: 4cm; /* Wider to prevent wrapping */
+                                text-align: center;
+                                font-size: 8pt;
+                                font-family: 'Helvetica', sans-serif;
+                                z-index: 10;
+                                background: rgba(255,255,255,0.8); /* readable on bg */
+                            }
                         </style>
                     </head>
                     <body>
                         ${templateBase64 ? `<img src="${templateBase64}" class="bg" />` : ''}
+                        ${qrCode ? `<img src="${qrCode}" class="qr-code" />` : ''}
+                        ${certificateId ? `<div class="cert-id-text">${certificateId}</div>` : ''}
                         <!-- <div class="mask"></div> -->
                         <div class="container">
                             <div class="date">${today}</div>
@@ -376,10 +397,32 @@ async function processCertificate({ studentData, courseData, certificateId, call
                             .line1 { font-size: 28px; font-weight: bold; color: #000; text-transform: uppercase; font-family: 'Times New Roman', serif; }
                             .line2-container { position: absolute; top: 48%; left: 10%; width: 80%; text-align: center; }
                             .line2 { font-size: 24px; color: #333; font-weight: bold; text-transform: uppercase; font-family: 'Times New Roman', serif; }
+                            .qr-code {
+                                position: absolute;
+                                top: 40px;
+                                right: 40px;
+                                width: 100px;
+                                height: 100px;
+                                z-index: 10;
+                            }
+                            .cert-id-text {
+                                position: absolute;
+                                top: 145px; /* Just below QR (40 + 100 + 5) */
+                                right: 15px; /* Centered relative to QR area */
+                                width: 150px; /* Wider */
+                                text-align: center;
+                                font-size: 10px;
+                                font-family: 'Helvetica', sans-serif;
+                                z-index: 10;
+                                background: rgba(255,255,255,0.7);
+                                padding: 2px 0;
+                            }
                         </style>
                     </head>
                     <body>
                         ${templateBase64 ? `<img src="${templateBase64}" class="bg" />` : ''}
+                        ${qrCode ? `<img src="${qrCode}" class="qr-code" />` : ''}
+                        ${certificateId ? `<div class="cert-id-text">${certificateId}</div>` : ''}
                         <div class="line1-container"><div class="line1">${line1Text}</div></div>
                         <div class="line2-container"><div class="line2">${line2Text}</div></div>
                     </body>
