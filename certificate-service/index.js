@@ -462,7 +462,7 @@ async function processCertificate({ studentData, courseData, certificateId, call
         const info = await transporter.sendMail(mailOptions);
         console.log(`[Email Sent] Message ID: ${info.messageId}`);
 
-        const downloadUrl = `${process.env.SERVICE_URL || `http://localhost:${PORT}`}/files/${certificateId}.pdf`;
+        const downloadUrl = `${process.env.SERVICE_URL || `http://72.60.103.246:${PORT}`}/files/${certificateId}.pdf`;
 
         await axios.post(callbackUrl, {
             certificateId,

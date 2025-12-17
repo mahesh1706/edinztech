@@ -20,10 +20,10 @@ const QRCode = require('qrcode'); // New Architecture
 // @access  Private/Admin
 const publishCertificates = asyncHandler(async (req, res) => {
     const programId = req.params.id;
-    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://localhost:5002/api/generate';
+    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://72.60.103.246:5002/api/generate';
     const CALLBACK_URL = process.env.CALLBACK_BASE_URL
         ? `${process.env.CALLBACK_BASE_URL}/api/webhooks/certificate-status`
-        : `http://localhost:5000/api/webhooks/certificate-status`;
+        : `http://72.60.103.246:5000/api/webhooks/certificate-status`;
 
     // 1. Verify Program
     const program = await Program.findById(programId);
@@ -420,10 +420,10 @@ const verifyNewCertificate = asyncHandler(async (req, res) => {
 // @access  Private/Admin
 const publishOfferLetters = asyncHandler(async (req, res) => {
     const programId = req.params.id;
-    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://localhost:5002/api/generate';
+    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://72.60.103.246:5002/api/generate';
     const CALLBACK_URL = process.env.CALLBACK_BASE_URL
         ? `${process.env.CALLBACK_BASE_URL}/api/webhooks/certificate-status`
-        : `http://localhost:5000/api/webhooks/certificate-status`;
+        : `http://72.60.103.246:5000/api/webhooks/certificate-status`;
 
     // 1. Verify Program
     const program = await Program.findById(programId);
