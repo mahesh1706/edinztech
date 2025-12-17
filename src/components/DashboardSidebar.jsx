@@ -46,6 +46,7 @@ export default function DashboardSidebar({ isOpen, onClose }) {
                     <SidebarItem to="/dashboard/internships" icon={Icons.Internships}>Internships</SidebarItem>
                     <SidebarItem to="/dashboard/workshops" icon={Icons.Workshops}>Workshops</SidebarItem>
                     <SidebarItem to="/dashboard/certificates" icon={Icons.Certificate}>Certificates</SidebarItem>
+                    <SidebarItem to="/dashboard/offer-letters" icon={Icons.FileText}>Offer Letters</SidebarItem>
                     <SidebarItem to="/dashboard/quizzes" icon={Icons.Quiz}>Quizzes</SidebarItem>
                     <SidebarItem to="/dashboard/feedbacks" icon={Icons.MessageSquare}>Feedbacks</SidebarItem>
                 </nav>

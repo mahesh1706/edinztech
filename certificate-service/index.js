@@ -26,7 +26,11 @@ if (!fs.existsSync(tempDir)) {
 
 // transporter configuration
 const transporter = nodemailer.createTransport({
-    jsonTransport: true // Store email as JSON on console/object
+    service: process.env.EMAIL_SERVICE || 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
 });
 
 // Serve static files
@@ -270,7 +274,7 @@ async function processCertificate({ studentData, courseData, certificateId, call
                                 box-sizing: border-box;
                                 z-index: 1;
                             }
-                            .date { text-align: right; font-weight: bold; margin-bottom: 20px; }
+                            .date { text-align: right; font-weight: bold; margin-bottom: 20px; margin-top: 40px; }
                             .to-address { margin-bottom: 30px; line-height: 1.4; }
                             .to-label { font-size: 14pt; margin-bottom: 5px; }
                             .student-details { font-weight: bold; font-size: 13pt; margin-left: 10px; }
@@ -298,7 +302,7 @@ async function processCertificate({ studentData, courseData, certificateId, call
                     </head>
                     <body>
                         ${templateBase64 ? `<img src="${templateBase64}" class="bg" />` : ''}
-                        <div class="mask"></div>
+                        <!-- <div class="mask"></div> -->
                         <div class="container">
                             <div class="date">${today}</div>
                             
@@ -343,14 +347,13 @@ async function processCertificate({ studentData, courseData, certificateId, call
                                 For any queries reach or mail the undersigned.
                             </div>
 
-                            <div class="signature-section">
-                                For Inspire Softech Solutions
-                                
+                            <div class="signature-section" style="margin-top: 150px;">
                                 <div class="sign-name">
                                     Dr. R. Karthiya Banu<br>
-                                    <span style="font-weight: normal;">Business Head</span>
+                                    <span style="font-weight: normal; font-size: 11pt;">Business Head, Ph: 8667493679 | Email karthiya@inspriess.in</span>
                                 </div>
                             </div>
+
                         </div>
                     </body>
                 </html>

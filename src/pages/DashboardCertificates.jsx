@@ -11,7 +11,12 @@ export default function DashboardCertificates() {
         const fetchCertificates = async () => {
             try {
                 const { data } = await api.get('/certificates/me'); // Changed from /me/certificates as defined in controller logic step
-                setCertificates(data);
+                // Filter out offer letters (show only actual certificates)
+                const filtered = data.filter(item =>
+                    !item.certificateId.startsWith('OFFER-') &&
+                    item.metadata?.type !== 'offer-letter'
+                );
+                setCertificates(filtered);
             } catch (err) {
                 console.error("Failed to load certificates", err);
             } finally {

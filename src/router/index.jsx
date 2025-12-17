@@ -30,6 +30,7 @@ import DashboardCourses from '../pages/DashboardCourses';
 import DashboardInternships from '../pages/DashboardInternships';
 import DashboardWorkshops from '../pages/DashboardWorkshops';
 import DashboardCertificates from '../pages/DashboardCertificates';
+import DashboardOfferLetters from '../pages/DashboardOfferLetters';
 import DashboardQuizzes from '../pages/DashboardQuizzes';
 import DashboardFeedbacks from '../pages/DashboardFeedbacks';
 
@@ -86,6 +87,7 @@ export const router = createBrowserRouter([
             { path: '/dashboard/internships', element: <DashboardInternships /> },
             { path: '/dashboard/workshops', element: <DashboardWorkshops /> },
             { path: '/dashboard/certificates', element: <DashboardCertificates /> },
+            { path: '/dashboard/offer-letters', element: <DashboardOfferLetters /> },
             { path: '/dashboard/quizzes', element: <DashboardQuizzes /> },
             { path: '/dashboard/quizzes/:id', element: <QuizAttempt /> }, // Added route
             { path: '/dashboard/feedbacks', element: <DashboardFeedbacks /> },

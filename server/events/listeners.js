@@ -1,5 +1,5 @@
 const eventBus = require('./eventBus');
-const certificateService = require('../services/certificateGenerator');
+// const certificateService = require('../services/certificateGenerator');
 const emailService = require('../services/emailService');
 // const Certificate = require('../models/Certificate'); // Disabled
 const Enrollment = require('../models/Enrollment');
@@ -46,8 +46,8 @@ eventBus.on('PROGRAM_COMPLETED', async ({ user, programId, quizAttempt }) => {
 
         const certificateCode = `CERT-${uuidv4().substring(0, 8).toUpperCase()}`;
 
-        // const { filePath } = await certificateService.generateCertificate(user, program, certificateCode);
-        const { path: fileUrl, code: generatedCode } = await certificateService.generateCertificate(user, program);
+        // const { path: fileUrl, code: generatedCode } = await certificateService.generateCertificate(user, program);
+        console.warn("Auto-generation via listener disabled (certificateGenerator missing). Use Admin Panel.");
 
 
         // 2. Save Certificate Record (DISABLED)
