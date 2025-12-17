@@ -39,6 +39,7 @@ app.use(express.json({
         req.rawBody = buf;
     }
 }));
+app.use('/api/webhooks', require('./routes/webhookRoutes')); // Added webhook route handler
 app.use(cors()); // Allow frontend to connect
 app.use(helmet({
     crossOriginResourcePolicy: false, // Allow loading images from uploads

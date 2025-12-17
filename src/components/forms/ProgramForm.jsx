@@ -12,38 +12,49 @@ import { useNavigate } from 'react-router-dom';
 // Helper Component for Template Upload
 const TemplateUploader = ({ label, file, setFile, initialUrl, onRemove }) => {
     const [preview, setPreview] = useState(null);
+    const [isImage, setIsImage] = useState(true);
+    const [isDismissed, setIsDismissed] = useState(false);
+
+    // Reset dismissed state if initialUrl changes (e.g. loading different program)
+    useEffect(() => {
+        setIsDismissed(false);
+    }, [initialUrl]);
 
     // Effect to generate preview URL
     useEffect(() => {
-        console.log(`[TemplateUploader] ${label} - initialUrl:`, initialUrl);
-        console.log(`[TemplateUploader] ${label} - file:`, file);
-
         if (file) {
+            // New file selected
             const objectUrl = URL.createObjectURL(file);
             setPreview(objectUrl);
+            const isImg = file.type.startsWith('image/');
+            setIsImage(isImg);
             return () => URL.revokeObjectURL(objectUrl);
-        } else if (initialUrl && typeof initialUrl === 'string') {
-            // Convert backend path (e.g., 'uploads/template-123.jpg') to accessible URL
+        } else if (initialUrl && typeof initialUrl === 'string' && !isDismissed) {
+            // Existing file from server (unless dismissed)
             let url = initialUrl.replace(/\\/g, '/');
             if (!url.startsWith('/')) {
                 url = '/' + url;
             }
-            // Now url is like '/uploads/template-123.jpg'
-            console.log(`[TemplateUploader] ${label} - processed url:`, url);
             setPreview(url);
+            const lowerUrl = url.toLowerCase();
+            setIsImage(lowerUrl.endsWith('.jpg') || lowerUrl.endsWith('.jpeg') || lowerUrl.endsWith('.png') || lowerUrl.endsWith('.webp'));
         } else {
+            // No file (or dismissed)
             setPreview(null);
         }
-    }, [file, initialUrl, label]);
+    }, [file, initialUrl, label, isDismissed]);
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
+            // If user uploads a file, we are no longer in "dismissed" state for *that* file, 
+            // but effectively we are ignoring initialUrl anyway because file takes precedence.
         }
     };
 
     const handleRemove = () => {
         setFile(null);
+        setIsDismissed(true); // Don't show initialUrl anymore
         if (onRemove) onRemove();
     };
 
@@ -53,16 +64,25 @@ const TemplateUploader = ({ label, file, setFile, initialUrl, onRemove }) => {
             <div className="border border-gray-200 p-4 rounded-lg text-center relative bg-gray-50">
                 <h4 className="font-medium text-gray-900 mb-2">{label}</h4>
                 <div className="relative inline-block group">
-                    <img
-                        src={preview}
-                        alt={`${label} Preview`}
-                        className="h-48 object-contain rounded-md border border-gray-300 bg-white"
-                    />
+                    {isImage ? (
+                        <img
+                            src={preview}
+                            alt={`${label} Preview`}
+                            className="h-48 object-contain rounded-md border border-gray-300 bg-white"
+                        />
+                    ) : (
+                        <div className="h-48 w-48 flex flex-col items-center justify-center bg-white border border-gray-300 rounded-md">
+                            <Icons.FileText size={48} className="text-blue-500 mb-2" />
+                            <span className="text-sm text-gray-600 px-2 truncate w-full">
+                                {file ? file.name : 'Document Template'}
+                            </span>
+                        </div>
+                    )}
                     <button
                         type="button"
                         onClick={handleRemove}
                         className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-md hover:bg-red-600 transition-colors"
-                        title="Remove Image"
+                        title="Remove File"
                     >
                         <Icons.Close size={16} />
                     </button>
@@ -70,6 +90,7 @@ const TemplateUploader = ({ label, file, setFile, initialUrl, onRemove }) => {
                 <p className="text-xs text-gray-400 mt-2">
                     {file ? file.name : 'Current Template'}
                 </p>
+                {/* Add a specific "Change/Delete" hint if needed, but the X button works */}
             </div>
         );
     }
@@ -80,18 +101,18 @@ const TemplateUploader = ({ label, file, setFile, initialUrl, onRemove }) => {
             <Icons.Certificate className="mx-auto h-10 w-10 text-gray-300 mb-2" />
             <h4 className="font-medium text-gray-900">{label}</h4>
             <p className="text-sm text-gray-500 mb-4">
-                Upload background image (JPG, PNG)
+                Upload template (JPG, PNG, DOC, DOCX)
             </p>
             <input
                 type="file"
-                accept="image/*"
+                accept=".jpg,.jpeg,.png,.doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={handleFileChange}
                 className="hidden"
                 id={`upload-${label.replace(/\s+/g, '-').toLowerCase()}`}
             />
             <label htmlFor={`upload-${label.replace(/\s+/g, '-').toLowerCase()}`}>
                 <span className="inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 px-3 py-1.5 text-sm cursor-pointer shadow-sm">
-                    Upload Image
+                    Upload File
                 </span>
             </label>
         </div>

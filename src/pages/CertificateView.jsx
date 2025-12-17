@@ -66,51 +66,17 @@ export default function CertificateView() {
             {/* Certificate Container */}
             <div className="relative w-full max-w-[1123px] bg-white shadow-2xl print:shadow-none print:w-[100vw] print:h-[100vh] overflow-hidden group">
 
-                {/* Mode A: Dynamic Template (Show only if valid and no error) */}
-                {templatePath && !imgError ? (
-                    <div className="relative w-full h-full">
-                        <img
-                            src={templatePath}
-                            alt="Certificate Template"
-                            className="w-full h-auto object-contain block"
-                            onError={(e) => {
-                                console.error("Template failed to load:", templatePath);
-                                setImgError(true);
-                            }}
+                {/* New Method: Display Generated PDF */}
+                {cert.fileUrl ? (
+                    <div className="w-full h-screen">
+                        <iframe
+                            src={cert.fileUrl}
+                            className="w-full h-full border-none"
+                            title="Certificate"
                         />
-
-                        {/* Overlays */}
-                        <div style={getStyle(config.name || { x: 50, y: 40, fontSize: 40, show: true })} className="font-bold font-serif">
-                            {cert.user?.name || "Student Name"}
-                        </div>
-
-                        <div style={getStyle(config.programName || { x: 50, y: 55, fontSize: 30, show: true })} className="font-bold">
-                            {cert.program?.title || "Program Title"}
-                        </div>
-
-                        <div style={getStyle(config.registrationNumber || { x: 50, y: 60, fontSize: 16, show: false })} className="font-mono">
-                            {cert.certificateId}
-                        </div>
-
-                        <div style={getStyle(config.date || { x: 75, y: 78, fontSize: 16, show: true })}>
-                            {new Date(cert.issueDate || Date.now()).toLocaleDateString()}
-                        </div>
-
-                        {config.qr?.show !== false && (
-                            <div style={{
-                                position: 'absolute',
-                                left: `${config.qr?.x || 10}%`,
-                                top: `${config.qr?.y || 75}%`,
-                                width: `${config.qr?.size || 100}px`,
-                                height: `${config.qr?.size || 100}px`,
-                                transform: 'translate(-50%, -50%)',
-                            }} className="bg-white p-1">
-                                <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}`} className="w-full h-full" alt="QR" />
-                            </div>
-                        )}
                     </div>
                 ) : (
-                    /* Mode B: Standard Fallback Design (The "Previous" one) */
+                    /* Fallback: Standard Design if no PDF is generated yet */
                     <div className="w-full aspect-[1.414/1] relative p-12 text-center border-8 border-secondary/10 flex flex-col items-center justify-center select-none bg-white">
                         <div className="absolute top-8 left-8">
                             <div className="flex items-center gap-2 text-2xl font-bold text-primary">

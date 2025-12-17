@@ -7,8 +7,17 @@ const User = require('../models/User'); // Ensure User model is loaded
 // @desc    Publish certificates for a program
 // @route   POST /api/admin/programs/:id/publish-certificates
 // @access  Private/Admin
+const axios = require('axios'); // Add axios
+
+// @desc    Publish certificates for a program (Trigger Service)
+// @route   POST /api/admin/programs/:id/publish-certificates
+// @access  Private/Admin
 const publishCertificates = asyncHandler(async (req, res) => {
     const programId = req.params.id;
+    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://localhost:5002/api/generate';
+    const CALLBACK_URL = process.env.CALLBACK_BASE_URL
+        ? `${process.env.CALLBACK_BASE_URL}/api/webhooks/certificate-status`
+        : `http://localhost:5000/api/webhooks/certificate-status`;
 
     // 1. Verify Program
     const program = await Program.findById(programId);
@@ -18,49 +27,82 @@ const publishCertificates = asyncHandler(async (req, res) => {
     }
 
     // 2. Find Active/Completed Enrollments
-    // Assuming certificates are issued for 'active' or 'completed' students
-    // Adjust filter based on business logic. User said "enrolled", implying all enrolled.
     const enrollments = await Enrollment.find({
         program: programId,
         status: { $in: ['active', 'completed'] }
-    });
+    }).populate('user', 'name email registerNumber year institutionName');
 
     if (enrollments.length === 0) {
         res.status(400);
         throw new Error('No enrolled students found for this program');
     }
 
-    let issuedCount = 0;
+    let triggeredCount = 0;
 
-    // 3. Issue Certificates
+    // 3. Trigger Service for Each
     for (const enrollment of enrollments) {
-        // Check if certificate already exists
+        const user = enrollment.user;
+        if (!user) continue;
+
+        // Check availability (Idempotency)
         const exists = await Certificate.findOne({
-            user: enrollment.user,
+            user: user._id,
             program: programId
         });
 
-        if (!exists) {
-            // Generate Payload
-            // Unique ID: PROG-USER-TIMESTAMP (simple generation)
-            // Unique ID: PROG-USER-TIMESTAMP (simple generation)
-            const uniqueId = `CERT-${program.code || 'PROG'}-${enrollment.user.toString().slice(-4)}-${Date.now().toString().slice(-4)}`;
+        if (!exists || exists.status === 'failed') {
+            // Create pending record
+            const certificateId = `CERT-${program.code || 'PROG'}-${user._id.toString().slice(-4)}-${Date.now().toString().slice(-4)}`;
 
-            await Certificate.create({
-                user: enrollment.user,
-                program: programId,
-                certificateId: `CERT-${Date.now()}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
-                issueDate: new Date()
-            });
-            issuedCount++;
+            let certDoc;
+            if (!exists) {
+                certDoc = await Certificate.create({
+                    user: user._id,
+                    program: programId,
+                    certificateId: certificateId,
+                    status: 'pending'
+                });
+            } else {
+                certDoc = exists;
+                certDoc.status = 'pending';
+                certDoc.error = undefined; // Clear previous error
+                await certDoc.save();
+            }
+
+            // Call Microservice
+            try {
+                await axios.post(CERT_SERVICE_URL, {
+                    studentData: {
+                        name: user.name,
+                        email: user.email,
+                        id: user._id,
+                        registerNumber: user.registerNumber || '',
+                        year: user.year || '',
+                        institutionName: user.institutionName || ''
+                    },
+                    courseData: {
+                        title: program.title,
+                        id: program._id
+                    },
+                    certificateId: certDoc.certificateId,
+                    callbackUrl: CALLBACK_URL,
+                    templateId: program.certificateTemplate || 'default'
+                });
+                triggeredCount++;
+            } catch (err) {
+                console.error(`Failed to trigger cert service for ${user.email}:`, err.message);
+                certDoc.status = 'failed';
+                certDoc.error = `Trigger Failed: ${err.message}`;
+                await certDoc.save();
+            }
         }
     }
 
     res.json({
         success: true,
-        message: `Certificates published successfully. Issued ${issuedCount} new certificates.`,
+        message: `Certificate generation triggered. Requests sent: ${triggeredCount}`,
         totalEnrollments: enrollments.length,
-        newlyIssued: issuedCount
+        triggered: triggeredCount
     });
 });
 
@@ -100,8 +142,118 @@ const issueCertificate = asyncHandler(async (req, res) => {
     res.status(501).json({ message: 'Not implemented yet' });
 });
 
+// @desc    Publish Offer Letters for a program
+// @route   POST /api/admin/programs/:id/publish-offer-letters
+// @access  Private/Admin
+const publishOfferLetters = asyncHandler(async (req, res) => {
+    const programId = req.params.id;
+    const CERT_SERVICE_URL = process.env.CERT_SERVICE_URL || 'http://localhost:5002/api/generate';
+    const CALLBACK_URL = process.env.CALLBACK_BASE_URL
+        ? `${process.env.CALLBACK_BASE_URL}/api/webhooks/certificate-status`
+        : `http://localhost:5000/api/webhooks/certificate-status`;
+
+    // 1. Verify Program
+    const program = await Program.findById(programId);
+    if (!program) {
+        res.status(404);
+        throw new Error('Program not found');
+    }
+
+    // 2. Find Active/Completed Enrollments
+    const enrollments = await Enrollment.find({
+        program: programId,
+        status: { $in: ['active', 'completed'] }
+    }).populate('user', 'name email registerNumber year institutionName department pincode city state');
+
+    if (enrollments.length === 0) {
+        res.status(400);
+        throw new Error('No enrolled students found for this program');
+    }
+
+    let triggeredCount = 0;
+
+    // 3. Trigger Service for Each
+    for (const enrollment of enrollments) {
+        const user = enrollment.user;
+        if (!user) continue;
+
+        // Check availability (Idempotency) - Check if Offer Letter already exists? 
+        // We can reuse Certificate model but maybe distinguish by certificateId prefix or added metadata
+        // For now, let's treat it as a special "Certificate" type to reuse the DB schema.
+        const exists = await Certificate.findOne({
+            user: user._id,
+            program: programId,
+            certificateId: { $regex: /^OFFER-/ } // Check for existing offer letter
+        });
+
+        if (!exists || exists.status === 'failed') {
+            // Create pending record
+            const certificateId = `OFFER-${program.code || 'PROG'}-${user._id.toString().slice(-4)}-${Date.now().toString().slice(-4)}`;
+
+            let certDoc;
+            if (!exists) {
+                certDoc = await Certificate.create({
+                    user: user._id,
+                    program: programId,
+                    certificateId: certificateId,
+                    status: 'pending',
+                    metadata: { type: 'offer-letter' } // Mark as offer letter
+                });
+            } else {
+                certDoc = exists;
+                certDoc.status = 'pending';
+                certDoc.error = undefined;
+                await certDoc.save();
+            }
+
+            // Call Microservice
+            try {
+                await axios.post(CERT_SERVICE_URL, {
+                    type: 'offer-letter', // Specify type
+                    studentData: {
+                        name: user.name,
+                        email: user.email,
+                        id: user._id,
+                        registerNumber: user.registerNumber || '',
+                        year: user.year || '',
+                        institutionName: user.institutionName || '',
+                        department: user.department || '',
+                        pincode: user.pincode || '',
+                        city: user.city || '',
+                        state: user.state || ''
+                    },
+                    courseData: {
+                        title: program.title,
+                        id: program._id,
+                        startDate: program.startDate,
+                        endDate: program.endDate
+                    },
+                    certificateId: certDoc.certificateId,
+                    callbackUrl: CALLBACK_URL,
+                    templateId: 'offer-letter',
+                    templateUrl: program.offerLetterTemplate // Pass the actual template path (e.g., uploads/template-....docx)
+                });
+                triggeredCount++;
+            } catch (err) {
+                console.error(`Failed to trigger offer letter service for ${user.email}:`, err.message);
+                certDoc.status = 'failed';
+                certDoc.error = `Trigger Failed: ${err.message}`;
+                await certDoc.save();
+            }
+        }
+    }
+
+    res.json({
+        success: true,
+        message: `Offer Letter generation triggered. Requests sent: ${triggeredCount}`,
+        totalEnrollments: enrollments.length,
+        triggered: triggeredCount
+    });
+});
+
 module.exports = {
     publishCertificates,
+    publishOfferLetters,
     getMyCertificates,
     verifyCertificate,
     issueCertificate

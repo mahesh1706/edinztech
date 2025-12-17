@@ -326,4 +326,9 @@ export const publishCertificates = async (programId) => {
     return data;
 };
 
+export const publishOfferLetters = async (programId) => {
+    const { data } = await api.post(`/admin/programs/${programId}/publish-offer-letters`);
+    return data;
+};
+
 export default api;

@@ -9,7 +9,7 @@ const {
     getDashboardStats,
     updateStudent
 } = require('../controllers/adminController');
-const { publishCertificates } = require('../controllers/certificateController');
+const { publishCertificates, publishOfferLetters } = require('../controllers/certificateController');
 const { protect, admin } = require('../middlewares/authMiddleware');
 
 // Route: /api/admin/invite
@@ -21,5 +21,6 @@ router.post('/credentials/resend', protect, admin, resendCredentials);
 router.get('/dashboard', protect, admin, getDashboardStats);
 router.put('/students/:id', protect, admin, updateStudent);
 router.post('/programs/:id/publish-certificates', protect, admin, publishCertificates); // New Route
+router.post('/programs/:id/publish-offer-letters', protect, admin, publishOfferLetters);
 
 module.exports = router;

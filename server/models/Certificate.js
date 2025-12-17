@@ -22,6 +22,17 @@ const certificateSchema = mongoose.Schema({
     },
     fileUrl: {
         type: String // In case we generate and upload a PDF
+    },
+    status: {
+        type: String,
+        enum: ['pending', 'sent', 'failed'],
+        default: 'pending'
+    },
+    metadata: {
+        type: Object
+    },
+    error: {
+        type: String
     }
 }, {
     timestamps: true

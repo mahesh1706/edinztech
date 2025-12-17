@@ -4,7 +4,7 @@ import { Icons } from '../components/icons/index';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Input } from '../components/ui/Input';
-import api, { publishCertificates, exportPrograms, toggleProgramFeedback } from '../lib/api'; // Added toggleProgramFeedback
+import api, { publishCertificates, publishOfferLetters, exportPrograms, toggleProgramFeedback } from '../lib/api'; // Added toggleProgramFeedback
 import AdminTable from '../components/AdminTable'; // Keep AdminTable import as it's used in JSX
 
 export default function AdminPrograms() {
@@ -65,6 +65,18 @@ export default function AdminPrograms() {
         } catch (err) {
             console.error("Failed to publish certificates", err);
             alert(err.response?.data?.message || 'Failed to publish certificates');
+        }
+    };
+
+    const handlePublishOfferLetter = async (programId, title) => {
+        if (!window.confirm(`Are you sure you want to publish Offer Letters for "${title}"?`)) return;
+
+        try {
+            const res = await publishOfferLetters(programId);
+            alert(res.message);
+        } catch (err) {
+            console.error("Failed to publish offer letters", err);
+            alert(err.response?.data?.message || 'Failed to publish offer letters');
         }
     };
 
@@ -214,6 +226,13 @@ export default function AdminPrograms() {
                                     title={program.isFeedbackEnabled ? "Feedback Enabled (Click to disable)" : "Feedback Disabled (Click to enable)"}
                                 >
                                     {program.isFeedbackEnabled ? <Icons.MessageCircle size={18} /> : <Icons.MessageSquare size={18} />}
+                                </button>
+                                <button
+                                    onClick={() => handlePublishOfferLetter(program._id || program.id, program.title)}
+                                    className="p-1 text-purple-600 hover:bg-purple-50 rounded"
+                                    title="Publish Offer Letters"
+                                >
+                                    <Icons.FileText size={18} />
                                 </button>
                             </div>
                         </td>

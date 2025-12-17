@@ -6,7 +6,7 @@ const { sendEmail } = require('../services/emailService');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const eventBus = require('../events/eventBus');
-const { encrypt, decrypt } = require('../utils/encryption');
+const { encrypt, decrypt, generateUserCode } = require('../utils/encryption');
 
 const inviteStudent = async (req, res) => {
     try {
@@ -29,8 +29,11 @@ const inviteStudent = async (req, res) => {
 
         if (!user) {
             isNewUser = true;
-            passwordString = crypto.randomBytes(4).toString('hex'); // 8 char hex
+            passwordString = crypto.randomBytes(8).toString('hex'); // Stronger password (16 chars)
             const username = name || (email.split('@')[0] + Math.floor(1000 + Math.random() * 9000));
+
+            // Generate User Code
+            const userCode = generateUserCode();
 
             user = await User.create({
                 name: username,
@@ -43,10 +46,11 @@ const inviteStudent = async (req, res) => {
                 state,
                 city,
                 pincode,
-                password: passwordString, // Pre-hash handled by model? Need to check.
-                // User model hash password in pre-save hook? YES, checked in step 250.
+                password: passwordString,
                 encryptedPassword: encrypt(passwordString),
-                role: 'student'
+                userCode: userCode,
+                role: 'student',
+                isActive: true
             });
             console.log('[DEBUG] Invite Password:', passwordString);
         }
@@ -61,8 +65,12 @@ const inviteStudent = async (req, res) => {
         const enrollment = await Enrollment.create({
             user: user._id,
             program: programId,
+            programType: program.type || 'Course', // Fallback to Course if undefined
+            userCode: user.userCode,
             status: 'active', // Direct active for invites
-            enrolledAt: Date.now()
+            source: 'invite',
+            enrolledAt: Date.now(),
+            validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000 * 2) // Default 2 years validity
         });
 
         // 4. Send Notification (Email)
@@ -85,7 +93,11 @@ const inviteStudent = async (req, res) => {
         try {
             // Check if email creds are real
             if (process.env.EMAIL_USER && process.env.EMAIL_USER.includes('@')) {
-                const info = await sendEmail(user.email, emailSubject, emailBody);
+                const info = await sendEmail({
+                    to: user.email,
+                    subject: emailSubject,
+                    html: emailBody
+                });
                 if (info) emailSent = true;
             } else {
                 console.log("Skipping email send: Mock credentials detected.");
